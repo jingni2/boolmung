@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boolmung Campfire</title>
+  <style>
+    :root {
+      --night-top: #07111f;
+      --night-bottom: #130905;
+      --ground-top: #59341b;
+      --ground-bottom: #24130a;
+      --ember: #ff971f;
+      --flame-core: #fff6d8;
+      --flame-mid: #ffc45b;
+      --flame-edge: #ff8a1f;
+      --flame-blue: #3c64ff;
+      --smoke: rgba(255, 240, 220, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 58%, rgba(255, 170, 74, 0.16), transparent 12%),
+        radial-gradient(circle at 50% 68%, rgba(255, 132, 36, 0.1), transparent 22%),
+        radial-gradient(circle at 50% 78%, rgba(255, 98, 28, 0.06), transparent 34%),
+        radial-gradient(circle at 6% 9%, rgba(255, 255, 255, 0.96) 0 0.8px, transparent 1.6px),
+        radial-gradient(circle at 11% 15%, rgba(255, 244, 214, 0.84) 0 1.1px, transparent 1.9px),
+        radial-gradient(circle at 17% 7%, rgba(255, 255, 255, 0.92) 0 0.7px, transparent 1.4px),
+        radial-gradient(circle at 23% 21%, rgba(255, 250, 232, 0.72) 0 0.9px, transparent 1.7px),
+        radial-gradient(circle at 29% 11%, rgba(255, 255, 255, 0.98) 0 1.2px, transparent 2.1px),
+        radial-gradient(circle at 36% 16%, rgba(255, 247, 219, 0.76) 0 0.8px, transparent 1.5px),
+        radial-gradient(circle at 43% 6%, rgba(255, 255, 255, 0.88) 0 0.7px, transparent 1.5px),
+        radial-gradient(circle at 48% 18%, rgba(255, 250, 230, 0.9) 0 1px, transparent 1.8px),
+        radial-gradient(circle at 54% 10%, rgba(255, 255, 255, 0.78) 0 0.8px, transparent 1.5px),
+        radial-gradient(circle at 61% 22%, rgba(255, 247, 214, 0.68) 0 0.8px, transparent 1.6px),
+        radial-gradient(circle at 68% 8%, rgba(255, 255, 255, 0.9) 0 1.15px, transparent 2px),
+        radial-gradient(circle at 74% 15%, rgba(255, 244, 206, 0.72) 0 0.75px, transparent 1.6px),
+        radial-gradient(circle at 81% 6%, rgba(255, 255, 255, 0.95) 0 0.9px, transparent 1.8px),
+        radial-gradient(circle at 88% 20%, rgba(255, 250, 230, 0.7) 0 0.85px, transparent 1.6px),
+        radial-gradient(circle at 94% 12%, rgba(255, 255, 255, 0.86) 0 0.7px, transparent 1.5px),
+        radial-gradient(circle at 14% 27%, rgba(255, 255, 255, 0.54) 0 0.55px, transparent 1.3px),
+        radial-gradient(circle at 33% 24%, rgba(255, 246, 214, 0.42) 0 0.5px, transparent 1.2px),
+        radial-gradient(circle at 58% 28%, rgba(255, 255, 255, 0.46) 0 0.55px, transparent 1.2px),
+        radial-gradient(circle at 77% 25%, rgba(255, 245, 214, 0.4) 0 0.45px, transparent 1.1px),
+        radial-gradient(ellipse at 50% 39%, rgba(186, 70, 22, 0.34), transparent 24%),
+        radial-gradient(ellipse at 50% 46%, rgba(119, 34, 10, 0.24), transparent 34%),
+        linear-gradient(180deg, #040812 0%, #07101d 18%, #110f16 34%, #3b180c 44%, #24120b 58%, #19100b 100%);
+      font-family: "Georgia", serif;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 50% 44%, rgba(192, 68, 22, 0.28), transparent 18%),
+        radial-gradient(ellipse at 50% 50%, rgba(255, 162, 60, 0.14), transparent 14%),
+        radial-gradient(circle at 50% 62%, rgba(255, 204, 118, 0.14), transparent 10%),
+        radial-gradient(circle at 18% 58%, rgba(0, 0, 0, 0.14), transparent 16%),
+        radial-gradient(circle at 82% 58%, rgba(0, 0, 0, 0.14), transparent 16%),
+        linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 0) 34%,
+          rgba(120, 36, 10, 0.08) 40%,
+          rgba(84, 34, 18, 0.24) 48%,
+          rgba(53, 26, 14, 0.54) 60%,
+          rgba(34, 18, 11, 0.82) 76%,
+          rgba(24, 15, 11, 0.94) 100%
+        );
+      box-shadow:
+        inset 0 26px 48px rgba(255, 162, 72, 0.04),
+        inset 0 -60px 120px rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .scene {
+      position: relative;
+      width: min(72vw, 430px);
+      aspect-ratio: 0.82 / 1.22;
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      isolation: isolate;
+      filter: saturate(1.08);
+      z-index: 1;
+    }
+
+    .moon {
+      position: fixed;
+      top: 7vh;
+      right: 8vw;
+      width: clamp(52px, 7vw, 88px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95) 0 8%, rgba(255, 246, 220, 0.94) 32%, rgba(216, 224, 238, 0.92) 68%, rgba(185, 197, 219, 0.88) 100%);
+      box-shadow:
+        0 0 18px rgba(255, 248, 214, 0.22),
+        0 0 48px rgba(173, 196, 255, 0.08);
+      overflow: hidden;
+      z-index: 0;
+      opacity: 0.96;
+    }
+
+    .moon::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 26% 34%, rgba(126, 138, 166, 0.16) 0 10%, transparent 11%),
+        radial-gradient(circle at 68% 28%, rgba(126, 138, 166, 0.12) 0 8%, transparent 9%),
+        radial-gradient(circle at 56% 64%, rgba(126, 138, 166, 0.15) 0 12%, transparent 13%);
+      mix-blend-mode: multiply;
+    }
+
+    .moon-shadow {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #091326;
+      transform: translateX(var(--moon-shadow-x, 0%)) scaleX(var(--moon-shadow-scale, 1));
+      opacity: var(--moon-shadow-opacity, 1);
+    }
+
+    .moon-glow {
+      position: absolute;
+      inset: -18%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 244, 202, 0.12), transparent 62%);
+      filter: blur(12px);
+      z-index: -1;
+    }
+
+    .sound-toggle {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 224, 180, 0.22);
+      border-radius: 999px;
+      background: rgba(10, 14, 24, 0.5);
+      color: rgba(255, 239, 222, 0.92);
+      font: inherit;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .sound-toggle:hover {
+      background: rgba(22, 28, 42, 0.64);
+    }
+
+    .glow {
+      position: absolute;
+      bottom: 16%;
+      width: 76%;
+      height: 24%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(255, 222, 156, 0.28), rgba(255, 171, 68, 0.22) 30%, rgba(255, 103, 24, 0.09) 58%, transparent 74%);
+      filter: blur(28px);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .smoke {
+      position: absolute;
+      bottom: 30%;
+      width: 22%;
+      height: 50%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 240, 220, 0.11), transparent 72%);
+      filter: blur(16px);
+      mix-blend-mode: screen;
+      opacity: 0;
+      animation: smoke-rise 8s ease-in infinite;
+    }
+
+    .smoke.s1 { left: 38%; animation-delay: 0s; }
+    .smoke.s2 { left: 46%; animation-delay: 1.8s; transform: scale(0.85); }
+    .smoke.s3 { left: 42%; animation-delay: 3.7s; transform: scale(1.1); }
+
+    .ground {
+      display: none;
+    }
+
+    .pit {
+      position: absolute;
+      bottom: 10.5%;
+      width: 62%;
+      height: 24%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(255, 162, 62, 0.16), transparent 31%),
+        radial-gradient(circle at 50% 70%, rgba(0, 0, 0, 0.9), rgba(8, 8, 8, 0.28) 66%, transparent 72%);
+      box-shadow:
+        inset 0 14px 24px rgba(255, 188, 126, 0.18),
+        inset 0 -8px 12px rgba(0, 0, 0, 0.7),
+        0 20px 24px rgba(0, 0, 0, 0.32);
+    }
+
+    .pit::before {
+      content: "";
+      position: absolute;
+      inset: 2% 2.5%;
+      border-radius: 50%;
+      border: 10px solid rgba(76, 54, 42, 0.92);
+      box-shadow:
+        inset 0 2px 3px rgba(255, 218, 180, 0.18),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.42);
+    }
+
+    .pit::after {
+      content: "";
+      position: absolute;
+      inset: 12% 13%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 65%, rgba(255, 122, 36, 0.22), transparent 34%),
+        radial-gradient(circle at 50% 60%, rgba(0, 0, 0, 0.84), rgba(12, 7, 5, 0.25) 72%, transparent 74%);
+    }
+
+    .log {
+      position: absolute;
+      bottom: 16.2%;
+      width: 27%;
+      height: 5.8%;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 227, 182, 0.22), rgba(255, 227, 182, 0.04) 18%, transparent 22%),
+        radial-gradient(circle at 50% 50%, rgba(52, 28, 15, 0.16), transparent 58%),
+        repeating-linear-gradient(90deg, #4b2b18 0 18px, #6c4122 18px 26px, #7f4b27 26px 34px, #5c341d 34px 50px, #3c2314 50px 66px),
+        linear-gradient(180deg, #926039 0%, #744724 38%, #5a341d 62%, #3a2115 100%);
+      box-shadow:
+        0 10px 16px rgba(0, 0, 0, 0.34),
+        inset 0 2px 1px rgba(255, 231, 194, 0.2),
+        inset 0 -6px 8px rgba(0, 0, 0, 0.34);
+    }
+
+    .log::before,
+    .log::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      background:
+        radial-gradient(circle, #cf9a66 0 20%, #9b653a 21% 37%, #784821 38% 54%, #5b341a 55% 68%, #3d2314 69% 100%);
+      box-shadow:
+        inset 0 1px 2px rgba(255, 225, 184, 0.16),
+        0 1px 2px rgba(0, 0, 0, 0.24);
+    }
+
+    .log-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(255, 210, 132, 0.26), transparent 38%),
+        linear-gradient(180deg, rgba(255, 179, 84, 0.22), transparent 42%);
+      mix-blend-mode: screen;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .log::before { left: -8px; }
+    .log::after { right: -8px; }
+
+    .log.left {
+      width: 30%;
+      bottom: 14.4%;
+      left: 28%;
+      z-index: 2;
+      transform: rotate(52deg);
+    }
+
+    .log.right {
+      width: 30%;
+      bottom: 14.4%;
+      right: 28%;
+      z-index: 2;
+      transform: rotate(-52deg);
+    }
+
+    .log.center {
+      width: 24%;
+      bottom: 17%;
+      left: 38.5%;
+      z-index: 1;
+      transform: rotate(86deg);
+      filter: brightness(0.9);
+    }
+
+    .log.back {
+      width: 24%;
+      bottom: 16.9%;
+      right: 38.5%;
+      z-index: 1;
+      transform: rotate(-86deg);
+      filter: brightness(0.84);
+    }
+
+    .log.front-left {
+      width: 18%;
+      bottom: 13.6%;
+      left: 33.8%;
+      z-index: 3;
+      transform: rotate(18deg);
+      filter: brightness(0.98);
+    }
+
+    .log.front-right {
+      width: 18%;
+      bottom: 13.6%;
+      right: 33.8%;
+      z-index: 3;
+      transform: rotate(-18deg);
+      filter: brightness(0.98);
+    }
+
+    .log.center::before,
+    .log.back::after,
+    .log.front-left::before,
+    .log.front-right::after {
+      opacity: 0;
+    }
+
+    .coal-bed {
+      position: absolute;
+      bottom: 13%;
+      width: 44%;
+      height: 17%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 55%, rgba(255, 88, 18, 0.86), rgba(255, 174, 58, 0.72) 28%, rgba(124, 24, 0, 0.42) 60%, transparent 76%),
+        radial-gradient(circle at 30% 55%, rgba(255, 210, 108, 0.32), transparent 24%),
+        radial-gradient(circle at 70% 46%, rgba(255, 138, 26, 0.28), transparent 24%),
+        radial-gradient(circle at 52% 76%, rgba(72, 100, 255, 0.26), transparent 18%),
+        #2d180f;
+      filter: blur(2px);
+      box-shadow:
+        0 0 34px rgba(255, 78, 0, 0.45),
+        0 0 80px rgba(255, 116, 24, 0.2);
+    }
+
+    .ground-light {
+      position: absolute;
+      left: 50%;
+      bottom: 7%;
+      width: 88%;
+      height: 30%;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(255, 214, 138, 0.18), transparent 18%),
+        radial-gradient(circle at 50% 42%, rgba(255, 160, 56, 0.18), rgba(255, 112, 26, 0.08) 28%, transparent 44%),
+        radial-gradient(circle at 50% 50%, rgba(255, 120, 26, 0.08), transparent 56%);
+      filter: blur(16px);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .fire {
+      position: absolute;
+      bottom: 16.2%;
+      width: 66%;
+      height: 68%;
+      z-index: 3;
+      mix-blend-mode: screen;
+      filter: saturate(1.15) blur(0.15px) drop-shadow(0 0 22px rgba(255, 126, 0, 0.32));
+    }
+
+    .fire canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .embers {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .ember {
+      position: absolute;
+      bottom: 22%;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      margin-left: -3.5px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff6dc, #ffc766 44%, rgba(255, 126, 22, 0.34) 74%, transparent 76%);
+      box-shadow: 0 0 12px rgba(255, 190, 76, 0.85);
+      opacity: 0;
+      animation: ember-rise linear infinite;
+    }
+
+    .caption {
+      position: absolute;
+      bottom: -8%;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 235, 214, 0.72);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      font-size: clamp(10px, 1.6vw, 12px);
+      white-space: nowrap;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scaleX(0.94) scaleY(0.88); opacity: 0.68; }
+      50% { transform: scaleX(1.08) scaleY(1.12); opacity: 1; }
+    }
+
+    @keyframes smoke-rise {
+      0% {
+        transform: translate3d(0, 0, 0) scale(0.6);
+        opacity: 0;
+      }
+      18% {
+        opacity: 0.28;
+      }
+      100% {
+        transform: translate3d(30px, -220px, 0) scale(1.8);
+        opacity: 0;
+      }
+    }
+
+    @keyframes ember-rise {
+      0% {
+        transform: translate3d(0, 0, 0) scale(0.5);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate3d(var(--drift-x), calc(var(--drift-y) * -1), 0) scale(0);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .scene { width: min(92vw, 390px); }
+
+      .moon {
+        top: 6vh;
+        right: 6vw;
+      }
+
+      .sound-toggle {
+        right: 16px;
+        bottom: 16px;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
+      body::after {
+        top: 0;
+      }
+
+      .caption {
+        bottom: -10%;
+        letter-spacing: 0.2em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="moon" id="moon" aria-label="오늘의 달">
+    <div class="moon-shadow" id="moonShadow"></div>
+    <div class="moon-glow"></div>
+  </div>
+  <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">Sound On</button>
+  <audio id="fireAudio" src="./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3" preload="auto" loop playsinline></audio>
+  <main class="scene" aria-label="흙바닥 위에서 타오르는 캠프파이어">
+    <div class="glow"></div>
+    <div class="smoke s1"></div>
+    <div class="smoke s2"></div>
+    <div class="smoke s3"></div>
+    <div class="ground"></div>
+    <div class="pit"></div>
+    <div class="ground-light"></div>
+    <div class="log left"><span class="log-glow"></span></div>
+    <div class="log right"><span class="log-glow"></span></div>
+    <div class="log center"><span class="log-glow"></span></div>
+    <div class="log back"><span class="log-glow"></span></div>
+    <div class="log front-left"><span class="log-glow"></span></div>
+    <div class="log front-right"><span class="log-glow"></span></div>
+    <div class="coal-bed"></div>
+    <section class="fire" aria-hidden="true">
+      <canvas id="fireCanvas"></canvas>
+    </section>
+    <div class="embers" id="embers"></div>
+  </main>
+
+  <script>
+    const embers = document.getElementById("embers");
+    const moon = document.getElementById("moon");
+    const moonShadow = document.getElementById("moonShadow");
+    const soundToggle = document.getElementById("soundToggle");
+    const fireAudio = document.getElementById("fireAudio");
+    const fireCanvas = document.getElementById("fireCanvas");
+    const fireContext = fireCanvas.getContext("2d");
+    const flames = [];
+    const tongues = [];
+    const rimFlames = [];
+    const flameCount = 90;
+    const tongueCount = 24;
+    const rimFlameCount = 18;
+    const synodicMonth = 29.530588853;
+    const knownNewMoonUtc = Date.UTC(2000, 0, 6, 18, 14, 0);
+    const fireAudioSrc = new URL("./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3", window.location.href).href;
+    let ambience = null;
+    let ambienceEnabled = false;
+
+    function startCampfireAmbience() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        soundToggle.hidden = true;
+        return null;
+      }
+
+      const audioContext = new AudioContextClass();
+      const masterGain = audioContext.createGain();
+      masterGain.gain.value = 0.2;
+      masterGain.connect(audioContext.destination);
+
+      const cricketBus = audioContext.createGain();
+      cricketBus.gain.value = 0.22;
+      cricketBus.connect(masterGain);
+
+      function scheduleCricket(delaySeconds) {
+        const startTime = audioContext.currentTime + delaySeconds;
+        const chirpCount = 3 + Math.floor(Math.random() * 4);
+        const baseFrequency = 2900 + Math.random() * 1700;
+
+        for (let index = 0; index < chirpCount; index += 1) {
+          const chirpStart = startTime + index * (0.08 + Math.random() * 0.03);
+          const chirpDuration = 0.028 + Math.random() * 0.02;
+          const oscillator = audioContext.createOscillator();
+          oscillator.type = "triangle";
+          oscillator.frequency.setValueAtTime(baseFrequency, chirpStart);
+          oscillator.frequency.exponentialRampToValueAtTime(baseFrequency * (1.02 + Math.random() * 0.02), chirpStart + chirpDuration);
+
+          const chirpGain = audioContext.createGain();
+          chirpGain.gain.setValueAtTime(0.0001, chirpStart);
+          chirpGain.gain.linearRampToValueAtTime(0.012 + Math.random() * 0.01, chirpStart + 0.006);
+          chirpGain.gain.exponentialRampToValueAtTime(0.0001, chirpStart + chirpDuration);
+
+          const chirpFilter = audioContext.createBiquadFilter();
+          chirpFilter.type = "bandpass";
+          chirpFilter.frequency.value = baseFrequency;
+          chirpFilter.Q.value = 5;
+
+          oscillator.connect(chirpFilter);
+          chirpFilter.connect(chirpGain);
+          chirpGain.connect(cricketBus);
+
+          oscillator.start(chirpStart);
+          oscillator.stop(chirpStart + chirpDuration + 0.02);
+        }
+      }
+
+      const cricketInterval = window.setInterval(() => {
+        scheduleCricket(Math.random() * 0.24);
+        if (Math.random() > 0.55) {
+          scheduleCricket(0.24 + Math.random() * 0.32);
+        }
+      }, 1200 + Math.random() * 1200);
+
+      return {
+        audioContext,
+        masterGain,
+        cricketInterval,
+        stop() {
+          window.clearInterval(cricketInterval);
+          masterGain.gain.cancelScheduledValues(audioContext.currentTime);
+          masterGain.gain.setTargetAtTime(0.0001, audioContext.currentTime, 0.22);
+          window.setTimeout(() => {
+            audioContext.close();
+          }, 450);
+        }
+      };
+    }
+
+    async function toggleAmbience() {
+      if (!ambienceEnabled) {
+        fireAudio.volume = 0.28;
+        fireAudio.currentTime = 0;
+        await fireAudio.play().catch(() => {});
+        ambience = startCampfireAmbience();
+        if (ambience?.audioContext?.state === "suspended") {
+          await ambience.audioContext.resume();
+        }
+        ambienceEnabled = true;
+        soundToggle.textContent = "Sound Off";
+        soundToggle.setAttribute("aria-pressed", "true");
+        return;
+      }
+
+      ambienceEnabled = false;
+      soundToggle.textContent = "Sound On";
+      soundToggle.setAttribute("aria-pressed", "false");
+      fireAudio.pause();
+      fireAudio.currentTime = 0;
+      ambience?.stop();
+      ambience = null;
+    }
+
+    function getSeoulNow() {
+      const now = new Date();
+      const seoulText = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(now);
+
+      return new Date(`${seoulText.replace(",", "")}+09:00`);
+    }
+
+    function updateMoonPhase() {
+      const seoulNow = getSeoulNow();
+      const daysSinceKnownNewMoon = (seoulNow.getTime() - knownNewMoonUtc) / 86400000;
+      const phaseAge = ((daysSinceKnownNewMoon % synodicMonth) + synodicMonth) % synodicMonth;
+      const phaseRatio = phaseAge / synodicMonth;
+      const illumination = 0.5 * (1 - Math.cos(phaseRatio * Math.PI * 2));
+      const waxing = phaseRatio <= 0.5;
+      const shadowOffset = (1 - illumination) * 100;
+      const shadowX = waxing ? -shadowOffset : shadowOffset;
+      const shadowScale = waxing ? 1 : -1;
+
+      moonShadow.style.setProperty("--moon-shadow-x", `${shadowX}%`);
+      moonShadow.style.setProperty("--moon-shadow-scale", `${shadowScale}`);
+      moonShadow.style.setProperty("--moon-shadow-opacity", illumination < 0.02 ? "0.98" : "1");
+
+      const phaseLabel = illumination > 0.97
+        ? "보름달"
+        : illumination < 0.08
+          ? "초승에 가까운 달"
+          : waxing
+            ? "차오르는 달"
+            : "기우는 달";
+
+      moon.setAttribute("aria-label", `한국 기준 오늘의 달: ${phaseLabel}`);
+    }
+
+    function resolveFireAudioSource() {
+      fireAudio.src = fireAudioSrc;
+      fireAudio.load();
+    }
+
+    function resizeFireCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = fireCanvas.getBoundingClientRect();
+      fireCanvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      fireCanvas.height = Math.max(1, Math.floor(rect.height * ratio));
+      fireContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function createFlame(resetX = false) {
+      return {
+        x: resetX ? Math.random() : 0.5,
+        radius: 14 + Math.random() * 26,
+        height: 86 + Math.random() * 180,
+        speed: 0.8 + Math.random() * 1.9,
+        sway: Math.random() * Math.PI * 2,
+        alpha: 0.16 + Math.random() * 0.24,
+        glow: 0.42 + Math.random() * 0.68,
+        bias: 0.18 + Math.random() * 0.64
+      };
+    }
+
+    function createTongue() {
+      return {
+        x: 0.24 + Math.random() * 0.52,
+        width: 14 + Math.random() * 22,
+        height: 160 + Math.random() * 160,
+        drift: 10 + Math.random() * 22,
+        speed: 0.72 + Math.random() * 1.2,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.1 + Math.random() * 0.16,
+        taper: 0.12 + Math.random() * 0.24,
+        curl: 0.8 + Math.random() * 1.3
+      };
+    }
+
+    function createRimFlame() {
+      return {
+        angle: Math.random() * Math.PI * 2,
+        span: 10 + Math.random() * 12,
+        height: 36 + Math.random() * 74,
+        width: 12 + Math.random() * 18,
+        speed: 0.9 + Math.random() * 1.4,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.14 + Math.random() * 0.18
+      };
+    }
+
+    function flameNoise(value) {
+      return (
+        Math.sin(value * 1.17) * 0.6 +
+        Math.sin(value * 2.41 + 1.3) * 0.28 +
+        Math.sin(value * 4.9 + 2.4) * 0.12
+      );
+    }
+
+    function seedFire() {
+      flames.length = 0;
+      tongues.length = 0;
+      rimFlames.length = 0;
+      for (let i = 0; i < flameCount; i += 1) {
+        const flame = createFlame(true);
+        flame.x = 0.22 + Math.random() * 0.56;
+        flames.push(flame);
+      }
+      for (let i = 0; i < tongueCount; i += 1) {
+        tongues.push(createTongue());
+      }
+      for (let i = 0; i < rimFlameCount; i += 1) {
+        rimFlames.push(createRimFlame());
+      }
+    }
+
+    function drawTongue(width, height, time, tongue) {
+      const baseX = tongue.x * width;
+      const lean = Math.sin(time * tongue.speed + tongue.phase) * tongue.drift;
+      const topY = height - tongue.height;
+      const gradient = fireContext.createLinearGradient(baseX, height, baseX + lean, topY);
+      gradient.addColorStop(0, "rgba(255, 136, 24, 0.03)");
+      gradient.addColorStop(0.14, `rgba(79, 109, 255, ${tongue.alpha * 0.85})`);
+      gradient.addColorStop(0.3, `rgba(255, 166, 48, ${tongue.alpha * 1.05})`);
+      gradient.addColorStop(0.6, `rgba(255, 204, 98, ${tongue.alpha * 1.55})`);
+      gradient.addColorStop(0.84, `rgba(255, 245, 198, ${tongue.alpha})`);
+      gradient.addColorStop(1, "rgba(255, 250, 236, 0)");
+
+      const leftEdge = [];
+      const rightEdge = [];
+      const steps = 11;
+
+      for (let step = 0; step <= steps; step += 1) {
+        const t = step / steps;
+        const y = height - tongue.height * t;
+        const centerShift =
+          lean * t +
+          flameNoise(t * 6 + time * tongue.speed * 1.9 + tongue.phase) * tongue.drift * 0.42 * (0.3 + t);
+        const centerX = baseX + centerShift;
+        const widthFactor = 1 - Math.pow(t, 0.72) * (1 - tongue.taper);
+        const ripple =
+          flameNoise(t * 10 + time * 3.4 + tongue.phase * 0.7) * tongue.width * 0.16 * (1 - t * 0.6);
+        const halfWidth = tongue.width * widthFactor * 0.5;
+        const curl = Math.sin(time * 2.1 + tongue.phase + t * 6) * tongue.curl * 4 * t;
+
+        leftEdge.push({ x: centerX - halfWidth + ripple - curl, y });
+        rightEdge.push({ x: centerX + halfWidth + ripple * 0.35 + curl, y });
+      }
+
+      fireContext.beginPath();
+      fireContext.moveTo(leftEdge[0].x, leftEdge[0].y);
+      for (let i = 1; i < leftEdge.length; i += 1) {
+        const previous = leftEdge[i - 1];
+        const current = leftEdge[i];
+        fireContext.quadraticCurveTo(
+          previous.x,
+          previous.y,
+          (previous.x + current.x) * 0.5,
+          (previous.y + current.y) * 0.5
+        );
+      }
+      const tipLeft = leftEdge[leftEdge.length - 1];
+      const tipRight = rightEdge[rightEdge.length - 1];
+      fireContext.quadraticCurveTo(
+        tipLeft.x,
+        tipLeft.y,
+        (tipLeft.x + tipRight.x) * 0.5,
+        Math.min(tipLeft.y, tipRight.y) - 6
+      );
+      for (let i = rightEdge.length - 1; i > 0; i -= 1) {
+        const previous = rightEdge[i];
+        const current = rightEdge[i - 1];
+        fireContext.quadraticCurveTo(
+          previous.x,
+          previous.y,
+          (previous.x + current.x) * 0.5,
+          (previous.y + current.y) * 0.5
+        );
+      }
+      fireContext.closePath();
+      fireContext.fillStyle = gradient;
+      fireContext.fill();
+    }
+
+    function drawRimFlame(width, height, time, rimFlame) {
+      const ringX = width * 0.5;
+      const ringY = height * 0.82;
+      const ringRadiusX = width * 0.4;
+      const ringRadiusY = height * 0.15;
+      const angle = rimFlame.angle + Math.sin(time * rimFlame.speed + rimFlame.phase) * 0.08;
+      const baseX = ringX + Math.cos(angle) * ringRadiusX;
+      const baseY = ringY + Math.sin(angle) * ringRadiusY;
+      const lean = Math.sin(time * (rimFlame.speed + 0.4) + rimFlame.phase) * rimFlame.span;
+      const tipX = baseX + lean;
+      const tipY = baseY - rimFlame.height;
+      const gradient = fireContext.createLinearGradient(baseX, baseY, tipX, tipY);
+
+      gradient.addColorStop(0, `rgba(66, 116, 255, ${rimFlame.alpha * 0.8})`);
+      gradient.addColorStop(0.22, `rgba(255, 164, 56, ${rimFlame.alpha * 1.08})`);
+      gradient.addColorStop(0.66, `rgba(255, 216, 132, ${rimFlame.alpha * 1.2})`);
+      gradient.addColorStop(1, "rgba(255, 245, 226, 0)");
+
+      fireContext.beginPath();
+      fireContext.moveTo(baseX - rimFlame.width * 0.45, baseY);
+      fireContext.quadraticCurveTo(
+        baseX - rimFlame.width * 0.9,
+        baseY - rimFlame.height * 0.28,
+        tipX,
+        tipY
+      );
+      fireContext.quadraticCurveTo(
+        baseX + rimFlame.width * 0.68,
+        baseY - rimFlame.height * 0.34,
+        baseX + rimFlame.width * 0.22,
+        baseY
+      );
+      fireContext.closePath();
+      fireContext.fillStyle = gradient;
+      fireContext.fill();
+    }
+
+    function drawFire(time) {
+      const width = fireCanvas.clientWidth;
+      const height = fireCanvas.clientHeight;
+
+      fireContext.clearRect(0, 0, width, height);
+      fireContext.globalCompositeOperation = "lighter";
+
+      const bedGlow = fireContext.createRadialGradient(width * 0.5, height * 0.92, 4, width * 0.5, height * 0.92, width * 0.34);
+      bedGlow.addColorStop(0, "rgba(255, 244, 214, 0.58)");
+      bedGlow.addColorStop(0.28, "rgba(255, 190, 76, 0.34)");
+      bedGlow.addColorStop(0.72, "rgba(84, 104, 255, 0.12)");
+      bedGlow.addColorStop(1, "rgba(255, 88, 0, 0)");
+      fireContext.fillStyle = bedGlow;
+      fireContext.beginPath();
+      fireContext.ellipse(width * 0.5, height * 0.9, width * 0.25, height * 0.08, 0, 0, Math.PI * 2);
+      fireContext.fill();
+
+      const blueBase = fireContext.createRadialGradient(width * 0.5, height * 0.94, 0, width * 0.5, height * 0.94, width * 0.16);
+      blueBase.addColorStop(0, "rgba(92, 118, 255, 0.36)");
+      blueBase.addColorStop(0.45, "rgba(68, 96, 255, 0.18)");
+      blueBase.addColorStop(1, "rgba(64, 92, 255, 0)");
+      fireContext.fillStyle = blueBase;
+      fireContext.beginPath();
+      fireContext.ellipse(width * 0.5, height * 0.94, width * 0.12, height * 0.035, 0, 0, Math.PI * 2);
+      fireContext.fill();
+
+      for (const rimFlame of rimFlames) {
+        drawRimFlame(width, height, time, rimFlame);
+      }
+
+      for (const tongue of tongues) {
+        drawTongue(width, height, time, tongue);
+      }
+
+      for (const flame of flames) {
+        flame.sway += flame.speed * 0.018;
+        const drift = Math.sin(flame.sway + time * 1.3) * 26;
+        const lift = (Math.sin(flame.sway * 0.7 + time * 1.6) * 0.5 + 0.5) * 28;
+        const bend = flameNoise(flame.sway + time * 1.8) * 15;
+        const x = flame.x * width + drift + bend;
+        const y = height - 26 - lift - flame.bias * 16;
+
+        const gradient = fireContext.createRadialGradient(
+          x,
+          y - flame.height * 0.1,
+          flame.radius * 0.18,
+          x,
+          y - flame.height * 0.25,
+          flame.radius
+        );
+        gradient.addColorStop(0, `rgba(255, 248, 220, ${flame.alpha * 2.6})`);
+        gradient.addColorStop(0.12, `rgba(255, 242, 198, ${flame.alpha * 2.1})`);
+        gradient.addColorStop(0.32, `rgba(255, 206, 104, ${flame.alpha * 1.5})`);
+        gradient.addColorStop(0.58, `rgba(255, 160, 42, ${flame.alpha})`);
+        gradient.addColorStop(0.82, `rgba(255, 108, 20, ${flame.alpha * 0.68})`);
+        gradient.addColorStop(1, "rgba(255, 88, 0, 0)");
+
+        fireContext.fillStyle = gradient;
+        fireContext.beginPath();
+        fireContext.ellipse(
+          x,
+          y - flame.height * (0.28 + flame.glow * 0.06),
+          flame.radius * (0.34 + flame.glow * 0.16),
+          flame.height * (0.42 + flame.glow * 0.16),
+          drift * 0.006 + bend * 0.008,
+          0,
+          Math.PI * 2
+        );
+        fireContext.fill();
+      }
+
+      const coreGlow = fireContext.createLinearGradient(width * 0.5, height * 0.9, width * 0.5, height * 0.06);
+      coreGlow.addColorStop(0, "rgba(94, 122, 255, 0.18)");
+      coreGlow.addColorStop(0.12, "rgba(255, 160, 46, 0.14)");
+      coreGlow.addColorStop(0.42, "rgba(255, 228, 160, 0.16)");
+      coreGlow.addColorStop(1, "rgba(255, 246, 230, 0)");
+      fireContext.fillStyle = coreGlow;
+      fireContext.beginPath();
+      fireContext.moveTo(width * 0.38, height * 0.88);
+      fireContext.quadraticCurveTo(width * 0.44, height * 0.42, width * 0.48, height * 0.12);
+      fireContext.quadraticCurveTo(width * 0.52, height * 0.02, width * 0.58, height * 0.18);
+      fireContext.quadraticCurveTo(width * 0.62, height * 0.5, width * 0.66, height * 0.88);
+      fireContext.closePath();
+      fireContext.fill();
+
+      fireContext.save();
+      fireContext.filter = "blur(18px)";
+      for (let hazeIndex = 0; hazeIndex < 3; hazeIndex += 1) {
+        const sway = flameNoise(time * (0.9 + hazeIndex * 0.2) + hazeIndex * 2.1);
+        const hazeGradient = fireContext.createRadialGradient(
+          width * (0.5 + sway * 0.05),
+          height * (0.52 - hazeIndex * 0.1),
+          0,
+          width * (0.5 + sway * 0.05),
+          height * (0.52 - hazeIndex * 0.1),
+          width * (0.18 + hazeIndex * 0.05)
+        );
+        hazeGradient.addColorStop(0, `rgba(255, 242, 198, ${0.09 - hazeIndex * 0.02})`);
+        hazeGradient.addColorStop(0.55, `rgba(255, 170, 56, ${0.08 - hazeIndex * 0.018})`);
+        hazeGradient.addColorStop(1, "rgba(255, 120, 20, 0)");
+        fireContext.fillStyle = hazeGradient;
+        fireContext.beginPath();
+        fireContext.ellipse(
+          width * (0.5 + sway * 0.05),
+          height * (0.58 - hazeIndex * 0.1),
+          width * (0.16 + hazeIndex * 0.045),
+          height * (0.2 + hazeIndex * 0.06),
+          sway * 0.12,
+          0,
+          Math.PI * 2
+        );
+        fireContext.fill();
+      }
+      fireContext.restore();
+    }
+
+    function spawnEmber() {
+      const ember = document.createElement("span");
+      ember.className = "ember";
+
+      const driftX = `${(Math.random() - 0.5) * 90}px`;
+      const driftY = `${130 + Math.random() * 180}px`;
+      const size = 2 + Math.random() * 4.5;
+      const duration = 1.6 + Math.random() * 1.8;
+      const delay = Math.random() * 0.8;
+      const startX = 44 + Math.random() * 12;
+
+      ember.style.left = `${startX}%`;
+      ember.style.width = `${size}px`;
+      ember.style.height = `${size}px`;
+      ember.style.marginLeft = `${size / -2}px`;
+      ember.style.setProperty("--drift-x", driftX);
+      ember.style.setProperty("--drift-y", driftY);
+      ember.style.animationDuration = `${duration}s`;
+      ember.style.animationDelay = `${delay}s`;
+
+      embers.appendChild(ember);
+
+      window.setTimeout(() => {
+        ember.remove();
+      }, (duration + delay) * 1000);
+    }
+
+    function animateFire(now) {
+      drawFire(now * 0.001);
+      window.requestAnimationFrame(animateFire);
+    }
+
+    resolveFireAudioSource();
+    resizeFireCanvas();
+    seedFire();
+    updateMoonPhase();
+    soundToggle.addEventListener("click", () => {
+      toggleAmbience();
+    });
+    window.addEventListener("resize", resizeFireCanvas);
+    window.requestAnimationFrame(animateFire);
+
+    window.setInterval(() => {
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let index = 0; index < count; index += 1) {
+        spawnEmber();
+      }
+    }, 180);
+  </script>
+</body>
+</html>
