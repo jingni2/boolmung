@@ -393,6 +393,7 @@
       width: 100%;
       height: 100%;
       display: block;
+      will-change: contents;
     }
 
     .embers {
@@ -522,18 +523,22 @@
     const soundToggle = document.getElementById("soundToggle");
     const fireAudio = document.getElementById("fireAudio");
     const fireCanvas = document.getElementById("fireCanvas");
-    const fireContext = fireCanvas.getContext("2d");
+    const fireContext = fireCanvas.getContext("2d", { alpha: true, desynchronized: true });
     const flames = [];
     const tongues = [];
     const rimFlames = [];
-    const flameCount = 90;
-    const tongueCount = 24;
-    const rimFlameCount = 18;
+    const compactViewport = window.matchMedia("(max-width: 900px)").matches;
+    const flameCount = compactViewport ? 54 : 72;
+    const tongueCount = compactViewport ? 14 : 18;
+    const rimFlameCount = compactViewport ? 10 : 14;
     const synodicMonth = 29.530588853;
     const knownNewMoonUtc = Date.UTC(2000, 0, 6, 18, 14, 0);
     const fireAudioSrc = new URL("./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3", window.location.href).href;
+    const maxCanvasRatio = compactViewport ? 1.15 : 1.35;
+    const targetFrameMs = compactViewport ? 1000 / 28 : 1000 / 30;
     let ambience = null;
     let ambienceEnabled = false;
+    let lastFrameTime = 0;
 
     function startCampfireAmbience() {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -677,7 +682,7 @@
     }
 
     function resizeFireCanvas() {
-      const ratio = window.devicePixelRatio || 1;
+      const ratio = Math.min(window.devicePixelRatio || 1, maxCanvasRatio);
       const rect = fireCanvas.getBoundingClientRect();
       fireCanvas.width = Math.max(1, Math.floor(rect.width * ratio));
       fireCanvas.height = Math.max(1, Math.floor(rect.height * ratio));
@@ -762,7 +767,7 @@
 
       const leftEdge = [];
       const rightEdge = [];
-      const steps = 11;
+      const steps = compactViewport ? 8 : 9;
 
       for (let step = 0; step <= steps; step += 1) {
         const t = step / steps;
@@ -939,8 +944,8 @@
       fireContext.fill();
 
       fireContext.save();
-      fireContext.filter = "blur(18px)";
-      for (let hazeIndex = 0; hazeIndex < 3; hazeIndex += 1) {
+      fireContext.filter = compactViewport ? "blur(10px)" : "blur(12px)";
+      for (let hazeIndex = 0; hazeIndex < 2; hazeIndex += 1) {
         const sway = flameNoise(time * (0.9 + hazeIndex * 0.2) + hazeIndex * 2.1);
         const hazeGradient = fireContext.createRadialGradient(
           width * (0.5 + sway * 0.05),
@@ -997,6 +1002,12 @@
     }
 
     function animateFire(now) {
+      if (now - lastFrameTime < targetFrameMs) {
+        window.requestAnimationFrame(animateFire);
+        return;
+      }
+
+      lastFrameTime = now;
       drawFire(now * 0.001);
       window.requestAnimationFrame(animateFire);
     }
@@ -1012,11 +1023,11 @@
     window.requestAnimationFrame(animateFire);
 
     window.setInterval(() => {
-      const count = 1 + Math.floor(Math.random() * 3);
+      const count = 1 + Math.floor(Math.random() * 2);
       for (let index = 0; index < count; index += 1) {
         spawnEmber();
       }
-    }, 180);
+    }, compactViewport ? 260 : 220);
   </script>
 </body>
 </html>
