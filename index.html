@@ -258,15 +258,12 @@
       width: 44%;
       height: 46%;
       z-index: 3;
-      mix-blend-mode: screen;
-      filter: saturate(1.18) blur(0.12px) drop-shadow(0 0 18px rgba(255, 138, 22, 0.36));
     }
 
     .fire canvas {
       width: 100%;
       height: 100%;
       display: block;
-      will-change: contents;
     }
 
     .embers {
@@ -300,9 +297,8 @@
 
     .character-3d-layer canvas {
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
+      left: 0;
+      bottom: 0;
       display: block;
     }
 
@@ -711,299 +707,6 @@
       fireAudio.load();
     }
 
-    function resizeFireCanvas() {
-      const ratio = Math.min(window.devicePixelRatio || 1, maxCanvasRatio);
-      const rect = fireCanvas.getBoundingClientRect();
-      fireCanvas.width = Math.max(1, Math.floor(rect.width * ratio));
-      fireCanvas.height = Math.max(1, Math.floor(rect.height * ratio));
-      fireContext.setTransform(ratio, 0, 0, ratio, 0, 0);
-    }
-
-    function createFlame(resetX = false) {
-      return {
-        x: resetX ? Math.random() : 0.5,
-        radius: 14 + Math.random() * 26,
-        height: 86 + Math.random() * 180,
-        speed: 0.8 + Math.random() * 1.9,
-        sway: Math.random() * Math.PI * 2,
-        alpha: 0.16 + Math.random() * 0.24,
-        glow: 0.42 + Math.random() * 0.68,
-        bias: 0.18 + Math.random() * 0.64
-      };
-    }
-
-    function createTongue() {
-      return {
-        x: 0.24 + Math.random() * 0.52,
-        width: 14 + Math.random() * 22,
-        height: 160 + Math.random() * 160,
-        drift: 10 + Math.random() * 22,
-        speed: 0.72 + Math.random() * 1.2,
-        phase: Math.random() * Math.PI * 2,
-        alpha: 0.1 + Math.random() * 0.16,
-        taper: 0.12 + Math.random() * 0.24,
-        curl: 0.8 + Math.random() * 1.3
-      };
-    }
-
-    function createRimFlame() {
-      return {
-        angle: Math.random() * Math.PI * 2,
-        span: 10 + Math.random() * 12,
-        height: 36 + Math.random() * 74,
-        width: 12 + Math.random() * 18,
-        speed: 0.9 + Math.random() * 1.4,
-        phase: Math.random() * Math.PI * 2,
-        alpha: 0.14 + Math.random() * 0.18
-      };
-    }
-
-    function flameNoise(value) {
-      return (
-        Math.sin(value * 1.17) * 0.6 +
-        Math.sin(value * 2.41 + 1.3) * 0.28 +
-        Math.sin(value * 4.9 + 2.4) * 0.12
-      );
-    }
-
-    function seedFire() {
-      flames.length = 0;
-      tongues.length = 0;
-      rimFlames.length = 0;
-      for (let i = 0; i < flameCount; i += 1) {
-        const flame = createFlame(true);
-        flame.x = 0.22 + Math.random() * 0.56;
-        flames.push(flame);
-      }
-      for (let i = 0; i < tongueCount; i += 1) {
-        tongues.push(createTongue());
-      }
-      for (let i = 0; i < rimFlameCount; i += 1) {
-        rimFlames.push(createRimFlame());
-      }
-    }
-
-    function drawTongue(width, height, time, tongue) {
-      const baseX = tongue.x * width;
-      const lean = Math.sin(time * tongue.speed + tongue.phase) * tongue.drift;
-      const topY = height - tongue.height;
-      const gradient = fireContext.createLinearGradient(baseX, height, baseX + lean, topY);
-      gradient.addColorStop(0, "rgba(255, 136, 24, 0.03)");
-      gradient.addColorStop(0.14, `rgba(79, 109, 255, ${tongue.alpha * 0.85})`);
-      gradient.addColorStop(0.3, `rgba(255, 166, 48, ${tongue.alpha * 1.05})`);
-      gradient.addColorStop(0.6, `rgba(255, 204, 98, ${tongue.alpha * 1.55})`);
-      gradient.addColorStop(0.84, `rgba(255, 245, 198, ${tongue.alpha})`);
-      gradient.addColorStop(1, "rgba(255, 250, 236, 0)");
-
-      const leftEdge = [];
-      const rightEdge = [];
-      const steps = compactViewport ? 8 : 9;
-
-      for (let step = 0; step <= steps; step += 1) {
-        const t = step / steps;
-        const y = height - tongue.height * t;
-        const centerShift =
-          lean * t +
-          flameNoise(t * 6 + time * tongue.speed * 1.9 + tongue.phase) * tongue.drift * 0.42 * (0.3 + t);
-        const centerX = baseX + centerShift;
-        const widthFactor = 1 - Math.pow(t, 0.72) * (1 - tongue.taper);
-        const ripple =
-          flameNoise(t * 10 + time * 3.4 + tongue.phase * 0.7) * tongue.width * 0.16 * (1 - t * 0.6);
-        const halfWidth = tongue.width * widthFactor * 0.5;
-        const curl = Math.sin(time * 2.1 + tongue.phase + t * 6) * tongue.curl * 4 * t;
-
-        leftEdge.push({ x: centerX - halfWidth + ripple - curl, y });
-        rightEdge.push({ x: centerX + halfWidth + ripple * 0.35 + curl, y });
-      }
-
-      fireContext.beginPath();
-      fireContext.moveTo(leftEdge[0].x, leftEdge[0].y);
-      for (let i = 1; i < leftEdge.length; i += 1) {
-        const previous = leftEdge[i - 1];
-        const current = leftEdge[i];
-        fireContext.quadraticCurveTo(
-          previous.x,
-          previous.y,
-          (previous.x + current.x) * 0.5,
-          (previous.y + current.y) * 0.5
-        );
-      }
-      const tipLeft = leftEdge[leftEdge.length - 1];
-      const tipRight = rightEdge[rightEdge.length - 1];
-      fireContext.quadraticCurveTo(
-        tipLeft.x,
-        tipLeft.y,
-        (tipLeft.x + tipRight.x) * 0.5,
-        Math.min(tipLeft.y, tipRight.y) - 6
-      );
-      for (let i = rightEdge.length - 1; i > 0; i -= 1) {
-        const previous = rightEdge[i];
-        const current = rightEdge[i - 1];
-        fireContext.quadraticCurveTo(
-          previous.x,
-          previous.y,
-          (previous.x + current.x) * 0.5,
-          (previous.y + current.y) * 0.5
-        );
-      }
-      fireContext.closePath();
-      fireContext.fillStyle = gradient;
-      fireContext.fill();
-    }
-
-    function drawRimFlame(width, height, time, rimFlame) {
-      const ringX = width * 0.5;
-      const ringY = height * 0.82;
-      const ringRadiusX = width * 0.4;
-      const ringRadiusY = height * 0.15;
-      const angle = rimFlame.angle + Math.sin(time * rimFlame.speed + rimFlame.phase) * 0.08;
-      const baseX = ringX + Math.cos(angle) * ringRadiusX;
-      const baseY = ringY + Math.sin(angle) * ringRadiusY;
-      const lean = Math.sin(time * (rimFlame.speed + 0.4) + rimFlame.phase) * rimFlame.span;
-      const tipX = baseX + lean;
-      const tipY = baseY - rimFlame.height;
-      const gradient = fireContext.createLinearGradient(baseX, baseY, tipX, tipY);
-
-      gradient.addColorStop(0, `rgba(66, 116, 255, ${rimFlame.alpha * 0.8})`);
-      gradient.addColorStop(0.22, `rgba(255, 164, 56, ${rimFlame.alpha * 1.08})`);
-      gradient.addColorStop(0.66, `rgba(255, 216, 132, ${rimFlame.alpha * 1.2})`);
-      gradient.addColorStop(1, "rgba(255, 245, 226, 0)");
-
-      fireContext.beginPath();
-      fireContext.moveTo(baseX - rimFlame.width * 0.45, baseY);
-      fireContext.quadraticCurveTo(
-        baseX - rimFlame.width * 0.9,
-        baseY - rimFlame.height * 0.28,
-        tipX,
-        tipY
-      );
-      fireContext.quadraticCurveTo(
-        baseX + rimFlame.width * 0.68,
-        baseY - rimFlame.height * 0.34,
-        baseX + rimFlame.width * 0.22,
-        baseY
-      );
-      fireContext.closePath();
-      fireContext.fillStyle = gradient;
-      fireContext.fill();
-    }
-
-    function drawFire(time) {
-      const width = fireCanvas.clientWidth;
-      const height = fireCanvas.clientHeight;
-
-      fireContext.clearRect(0, 0, width, height);
-      fireContext.globalCompositeOperation = "lighter";
-
-      const bedGlow = fireContext.createRadialGradient(width * 0.5, height * 0.92, 4, width * 0.5, height * 0.92, width * 0.34);
-      bedGlow.addColorStop(0, "rgba(255, 244, 214, 0.58)");
-      bedGlow.addColorStop(0.28, "rgba(255, 190, 76, 0.34)");
-      bedGlow.addColorStop(0.72, "rgba(84, 104, 255, 0.12)");
-      bedGlow.addColorStop(1, "rgba(255, 88, 0, 0)");
-      fireContext.fillStyle = bedGlow;
-      fireContext.beginPath();
-      fireContext.ellipse(width * 0.5, height * 0.9, width * 0.25, height * 0.08, 0, 0, Math.PI * 2);
-      fireContext.fill();
-
-      const blueBase = fireContext.createRadialGradient(width * 0.5, height * 0.94, 0, width * 0.5, height * 0.94, width * 0.16);
-      blueBase.addColorStop(0, "rgba(92, 118, 255, 0.36)");
-      blueBase.addColorStop(0.45, "rgba(68, 96, 255, 0.18)");
-      blueBase.addColorStop(1, "rgba(64, 92, 255, 0)");
-      fireContext.fillStyle = blueBase;
-      fireContext.beginPath();
-      fireContext.ellipse(width * 0.5, height * 0.94, width * 0.12, height * 0.035, 0, 0, Math.PI * 2);
-      fireContext.fill();
-
-      for (const rimFlame of rimFlames) {
-        drawRimFlame(width, height, time, rimFlame);
-      }
-
-      for (const tongue of tongues) {
-        drawTongue(width, height, time, tongue);
-      }
-
-      for (const flame of flames) {
-        flame.sway += flame.speed * 0.018;
-        const drift = Math.sin(flame.sway + time * 1.3) * 26;
-        const lift = (Math.sin(flame.sway * 0.7 + time * 1.6) * 0.5 + 0.5) * 28;
-        const bend = flameNoise(flame.sway + time * 1.8) * 15;
-        const x = flame.x * width + drift + bend;
-        const y = height - 26 - lift - flame.bias * 16;
-
-        const gradient = fireContext.createRadialGradient(
-          x,
-          y - flame.height * 0.1,
-          flame.radius * 0.18,
-          x,
-          y - flame.height * 0.25,
-          flame.radius
-        );
-        gradient.addColorStop(0, `rgba(255, 248, 220, ${flame.alpha * 2.6})`);
-        gradient.addColorStop(0.12, `rgba(255, 242, 198, ${flame.alpha * 2.1})`);
-        gradient.addColorStop(0.32, `rgba(255, 206, 104, ${flame.alpha * 1.5})`);
-        gradient.addColorStop(0.58, `rgba(255, 160, 42, ${flame.alpha})`);
-        gradient.addColorStop(0.82, `rgba(255, 108, 20, ${flame.alpha * 0.68})`);
-        gradient.addColorStop(1, "rgba(255, 88, 0, 0)");
-
-        fireContext.fillStyle = gradient;
-        fireContext.beginPath();
-        fireContext.ellipse(
-          x,
-          y - flame.height * (0.28 + flame.glow * 0.06),
-          flame.radius * (0.34 + flame.glow * 0.16),
-          flame.height * (0.42 + flame.glow * 0.16),
-          drift * 0.006 + bend * 0.008,
-          0,
-          Math.PI * 2
-        );
-        fireContext.fill();
-      }
-
-      const coreGlow = fireContext.createLinearGradient(width * 0.5, height * 0.9, width * 0.5, height * 0.06);
-      coreGlow.addColorStop(0, "rgba(94, 122, 255, 0.18)");
-      coreGlow.addColorStop(0.12, "rgba(255, 160, 46, 0.14)");
-      coreGlow.addColorStop(0.42, "rgba(255, 228, 160, 0.16)");
-      coreGlow.addColorStop(1, "rgba(255, 246, 230, 0)");
-      fireContext.fillStyle = coreGlow;
-      fireContext.beginPath();
-      fireContext.moveTo(width * 0.38, height * 0.88);
-      fireContext.quadraticCurveTo(width * 0.44, height * 0.42, width * 0.48, height * 0.12);
-      fireContext.quadraticCurveTo(width * 0.52, height * 0.02, width * 0.58, height * 0.18);
-      fireContext.quadraticCurveTo(width * 0.62, height * 0.5, width * 0.66, height * 0.88);
-      fireContext.closePath();
-      fireContext.fill();
-
-      fireContext.save();
-      fireContext.filter = compactViewport ? "blur(10px)" : "blur(12px)";
-      for (let hazeIndex = 0; hazeIndex < 2; hazeIndex += 1) {
-        const sway = flameNoise(time * (0.9 + hazeIndex * 0.2) + hazeIndex * 2.1);
-        const hazeGradient = fireContext.createRadialGradient(
-          width * (0.5 + sway * 0.05),
-          height * (0.52 - hazeIndex * 0.1),
-          0,
-          width * (0.5 + sway * 0.05),
-          height * (0.52 - hazeIndex * 0.1),
-          width * (0.18 + hazeIndex * 0.05)
-        );
-        hazeGradient.addColorStop(0, `rgba(255, 242, 198, ${0.09 - hazeIndex * 0.02})`);
-        hazeGradient.addColorStop(0.55, `rgba(255, 170, 56, ${0.08 - hazeIndex * 0.018})`);
-        hazeGradient.addColorStop(1, "rgba(255, 120, 20, 0)");
-        fireContext.fillStyle = hazeGradient;
-        fireContext.beginPath();
-        fireContext.ellipse(
-          width * (0.5 + sway * 0.05),
-          height * (0.58 - hazeIndex * 0.1),
-          width * (0.16 + hazeIndex * 0.045),
-          height * (0.2 + hazeIndex * 0.06),
-          sway * 0.12,
-          0,
-          Math.PI * 2
-        );
-        fireContext.fill();
-      }
-      fireContext.restore();
-    }
-
     function spawnEmber() {
       const ember = document.createElement("span");
       ember.className = "ember";
@@ -1029,17 +732,6 @@
       window.setTimeout(() => {
         ember.remove();
       }, (duration + delay) * 1000);
-    }
-
-    function animateFire(now) {
-      if (now - lastFrameTime < targetFrameMs) {
-        window.requestAnimationFrame(animateFire);
-        return;
-      }
-
-      lastFrameTime = now;
-      drawFire(now * 0.001);
-      window.requestAnimationFrame(animateFire);
     }
 
     resolveFireAudioSource();

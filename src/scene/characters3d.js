@@ -12,6 +12,9 @@ export class CharacterMotionGallery {
       modelUrl: "./src/assets/models/umboi-web.glb",
       maxFps: 24,
       walkSpeed: 44,
+      // 캐릭터가 걷는 화면 하단 밴드의 높이 비율. 캔버스를 이 밴드로만
+      // 한정해 매 프레임 합성하는 픽셀 면적을 줄인다(전체화면 대비 약 절반).
+      bandRatio: 0.55,
       ...options,
     };
 
@@ -35,6 +38,7 @@ export class CharacterMotionGallery {
     this.lastRenderTime = 0;
     this.sourceHeight = 1;
     this.characterHeight = 96;
+    this.bandHeight = 1;
     this.destroyed = false;
 
     this.handleResize = this.handleResize.bind(this);
@@ -150,14 +154,19 @@ export class CharacterMotionGallery {
     const height = window.innerHeight;
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 1);
 
+    // 캔버스를 화면 하단 밴드로 한정한다(CSS에서 bottom:0 고정). 카메라와
+    // 좌표 매핑을 밴드에 맞춰 캐릭터의 화면상 위치·크기는 그대로 유지한다.
+    const bandHeight = Math.max(1, Math.round(height * this.options.bandRatio));
+    this.bandHeight = bandHeight;
+
     this.camera.left = -width / 2;
     this.camera.right = width / 2;
-    this.camera.top = height / 2;
-    this.camera.bottom = -height / 2;
+    this.camera.top = bandHeight / 2;
+    this.camera.bottom = -bandHeight / 2;
     this.camera.updateProjectionMatrix();
 
     this.renderer.setPixelRatio(pixelRatio);
-    this.renderer.setSize(width, height, false);
+    this.renderer.setSize(width, bandHeight, true);
 
     if (!this.character) {
       return;
@@ -213,9 +222,11 @@ export class CharacterMotionGallery {
   }
 
   paintCharacter(width = window.innerWidth, height = window.innerHeight) {
+    // 화면 좌표(위에서부터의 y)를 하단 밴드 카메라 좌표로 변환한다.
+    const bandHeight = this.bandHeight || height;
     this.character.wrapper.position.set(
       this.character.screenPosition.x - width / 2,
-      height / 2 - this.character.screenPosition.y,
+      (height - bandHeight / 2) - this.character.screenPosition.y,
       0
     );
   }
