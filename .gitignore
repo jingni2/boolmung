@@ -1,0 +1,11 @@
+.DS_Store
+Meshy_AI_Marshmallow_Person_biped 2/
+/tools/
+/*.png
+/*.jpg
+/src/assets/turnaround/
+/src/assets/umboi-nukki.png
+/src/assets/models/umboi-source.glb
+/src/assets/models/umboi-rigged.glb
+/src/assets/models/umboi-running.glb
+/src/assets/models/umboi-motion-library.glb
