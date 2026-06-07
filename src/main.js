@@ -1,11 +1,14 @@
 import { RoamingCharacter } from "./character.js";
-import { CampfireRenderer } from "./scene/fire.js";
+import { CampfireController } from "./scene/fire.js";
 import { CharacterMotionGallery } from "./scene/characters3d.js";
 import { NightSkyRenderer } from "./scene/sky.js";
 import { DirtGroundRenderer } from "./scene/ground.js";
 
 const wanderer = document.getElementById("wanderer");
-const fireCanvas = document.getElementById("fireCanvas");
+const sceneRoot = document.querySelector(".scene");
+const hearthCanvas = document.getElementById("hearthCanvas");
+const realFlameVideo = document.getElementById("realFlameVideo");
+const realFlameCanvas = document.getElementById("realFlameCanvas");
 const character3dLayer = document.getElementById("character3dLayer");
 const starCanvas = document.getElementById("starCanvas");
 const groundCanvas = document.getElementById("groundCanvas");
@@ -22,9 +25,14 @@ if (groundCanvas) {
   new DirtGroundRenderer(groundCanvas).start();
 }
 
-if (fireCanvas) {
-  const fire = new CampfireRenderer(fireCanvas);
-  fire.start();
+if (hearthCanvas || realFlameVideo || realFlameCanvas) {
+  const campfire = new CampfireController({
+    root: sceneRoot,
+    hearthCanvas,
+    realFlameVideo,
+    realFlameCanvas,
+  });
+  campfire.start();
 }
 
 if (wanderer) {
