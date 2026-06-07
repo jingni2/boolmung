@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Boolmung Campfire</title>
   <link rel="stylesheet" href="./src/styles/sky.css">
+  <link rel="stylesheet" href="./src/styles/horizon.css">
   <link rel="stylesheet" href="./src/styles/ground.css">
   <style>
     :root {
@@ -571,6 +572,138 @@
   <!-- NIGHT SKY: markup and rendering live independently in sky.js. -->
   <section class="night-sky" id="nightSky" aria-hidden="true">
     <canvas id="starCanvas"></canvas>
+  </section>
+
+  <!-- NIGHT HORIZON: distant mountains and pine silhouettes between sky and ground. -->
+  <section class="night-horizon" aria-hidden="true">
+    <svg viewBox="0 0 1600 300" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="farMountainShade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#101726"></stop>
+          <stop offset="1" stop-color="#090a0e"></stop>
+        </linearGradient>
+        <linearGradient id="nearMountainShade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#090d13"></stop>
+          <stop offset="1" stop-color="#050607"></stop>
+        </linearGradient>
+        <radialGradient id="horizonFireGlow" cx="50%" cy="100%" r="48%">
+          <stop offset="0" stop-color="#8c3c17" stop-opacity="0.32"></stop>
+          <stop offset="0.38" stop-color="#5b2512" stop-opacity="0.14"></stop>
+          <stop offset="1" stop-color="#1b0c08" stop-opacity="0"></stop>
+        </radialGradient>
+        <symbol id="pineTree" viewBox="-32 0 64 138">
+          <path d="M-1.8 138V32h3.6v106Z" fill="#020303"></path>
+          <path
+            d="M0 2
+              C-3 13-10 24-20 34C-13 33-8 31-3 27
+              C-7 39-16 51-28 62C-19 61-11 57-4 52
+              C-9 68-20 82-32 96C-21 94-12 90-5 83
+              C-9 100-17 115-25 130C-14 126-6 119 0 108
+              C6 119 14 126 25 130C17 115 9 100 5 83
+              C12 90 21 94 32 96C20 82 9 68 4 52
+              C11 57 19 61 28 62C16 51 7 39 3 27
+              C8 31 13 33 20 34C10 24 3 13 0 2Z"
+            fill="currentColor"
+          ></path>
+        </symbol>
+        <symbol id="pineTreeSlim" viewBox="-22 0 44 128">
+          <path d="M-1.4 128V29h2.8v99Z" fill="#020303"></path>
+          <path
+            d="M0 3
+              C-3 17-9 28-17 38C-11 37-6 35-2 31
+              C-5 47-12 60-21 74C-13 72-7 68-2 62
+              C-5 82-11 101-18 121C-9 116-3 107 0 94
+              C3 107 9 116 18 121C11 101 5 82 2 62
+              C7 68 13 72 21 74C12 60 5 47 2 31
+              C6 35 11 37 17 38C9 28 3 17 0 3Z"
+            fill="currentColor"
+          ></path>
+        </symbol>
+      </defs>
+
+      <path
+        class="mountain mountain-far"
+        d="M0 153C98 130 160 124 246 137c90 14 139 5 215-18 74-22 130-32 202-11 51 15 84 16 139 3 86-21 136-10 202 6 78 19 121 2 194-18 84-23 139-10 208 4 65 13 118 2 194-15v152H0Z"
+        fill="url(#farMountainShade)"
+      ></path>
+      <path
+        class="mountain mountain-near"
+        d="M0 193c90-34 161-35 252-4 77 26 124 18 203-14 81-33 151-35 235-3 69 26 122 22 202-10 90-36 153-33 233 1 70 30 121 25 194-7 89-40 171-31 281 10v134H0Z"
+        fill="url(#nearMountainShade)"
+      ></path>
+      <rect class="horizon-fire-glow" width="1600" height="300" fill="url(#horizonFireGlow)"></rect>
+
+      <g class="forest forest-back" color="#080c10">
+        <use href="#pineTreeSlim" x="-8" y="128" width="34" height="99"></use>
+        <use href="#pineTree" x="18" y="111" width="54" height="137"></use>
+        <use href="#pineTreeSlim" x="61" y="139" width="32" height="93"></use>
+        <use href="#pineTree" x="82" y="131" width="43" height="109"></use>
+        <use href="#pineTreeSlim" x="116" y="126" width="36" height="105"></use>
+        <use href="#pineTree" x="135" y="106" width="62" height="151"></use>
+        <use href="#pineTreeSlim" x="190" y="136" width="34" height="99"></use>
+        <use href="#pineTree" x="218" y="137" width="42" height="102"></use>
+        <use href="#pineTreeSlim" x="252" y="130" width="34" height="99"></use>
+        <use href="#pineTree" x="281" y="121" width="50" height="122"></use>
+        <use href="#pineTreeSlim" x="329" y="135" width="32" height="93"></use>
+        <use href="#pineTree" x="357" y="139" width="38" height="92"></use>
+        <use href="#pineTreeSlim" x="392" y="130" width="33" height="96"></use>
+        <use href="#pineTree" x="424" y="112" width="58" height="141"></use>
+        <use href="#pineTreeSlim" x="484" y="134" width="34" height="99"></use>
+        <use href="#pineTree" x="515" y="132" width="43" height="105"></use>
+        <use href="#pineTreeSlim" x="555" y="124" width="36" height="105"></use>
+        <use href="#pineTree" x="584" y="119" width="50" height="122"></use>
+        <use href="#pineTreeSlim" x="637" y="132" width="34" height="99"></use>
+        <use href="#pineTree" x="665" y="137" width="39" height="95"></use>
+        <use href="#pineTreeSlim" x="703" y="130" width="35" height="102"></use>
+        <use href="#pineTree" x="736" y="125" width="46" height="112"></use>
+        <use href="#pineTreeSlim" x="782" y="139" width="31" height="90"></use>
+        <use href="#pineTree" x="819" y="136" width="39" height="95"></use>
+        <use href="#pineTreeSlim" x="855" y="129" width="35" height="102"></use>
+        <use href="#pineTree" x="893" y="112" width="57" height="139"></use>
+        <use href="#pineTreeSlim" x="949" y="133" width="35" height="102"></use>
+        <use href="#pineTree" x="982" y="132" width="43" height="105"></use>
+        <use href="#pineTreeSlim" x="1020" y="125" width="36" height="105"></use>
+        <use href="#pineTree" x="1054" y="116" width="54" height="131"></use>
+        <use href="#pineTreeSlim" x="1110" y="134" width="34" height="99"></use>
+        <use href="#pineTree" x="1145" y="136" width="40" height="98"></use>
+        <use href="#pineTreeSlim" x="1186" y="129" width="35" height="102"></use>
+        <use href="#pineTree" x="1218" y="105" width="65" height="158"></use>
+        <use href="#pineTreeSlim" x="1282" y="135" width="34" height="99"></use>
+        <use href="#pineTree" x="1310" y="126" width="48" height="117"></use>
+        <use href="#pineTreeSlim" x="1358" y="133" width="35" height="102"></use>
+        <use href="#pineTree" x="1385" y="111" width="58" height="141"></use>
+        <use href="#pineTreeSlim" x="1442" y="130" width="34" height="99"></use>
+        <use href="#pineTree" x="1478" y="128" width="47" height="114"></use>
+        <use href="#pineTreeSlim" x="1518" y="136" width="33" height="96"></use>
+        <use href="#pineTree" x="1540" y="101" width="66" height="161"></use>
+      </g>
+
+      <g class="forest forest-front" color="#030505">
+        <use href="#pineTree" x="-22" y="133" width="62" height="165"></use>
+        <use href="#pineTreeSlim" x="28" y="158" width="38" height="118"></use>
+        <use href="#pineTree" x="52" y="163" width="50" height="122"></use>
+        <use href="#pineTreeSlim" x="108" y="171" width="36" height="112"></use>
+        <use href="#pineTree" x="168" y="144" width="57" height="150"></use>
+        <use href="#pineTreeSlim" x="238" y="169" width="35" height="108"></use>
+        <use href="#pineTree" x="322" y="169" width="46" height="112"></use>
+        <use href="#pineTreeSlim" x="384" y="173" width="34" height="105"></use>
+        <use href="#pineTree" x="462" y="157" width="52" height="127"></use>
+        <use href="#pineTreeSlim" x="530" y="171" width="35" height="108"></use>
+        <use href="#pineTree" x="602" y="171" width="43" height="105"></use>
+        <use href="#pineTreeSlim" x="670" y="177" width="31" height="96"></use>
+        <use href="#pineTreeSlim" x="865" y="176" width="31" height="96"></use>
+        <use href="#pineTree" x="932" y="168" width="45" height="110"></use>
+        <use href="#pineTreeSlim" x="1006" y="172" width="34" height="105"></use>
+        <use href="#pineTree" x="1082" y="154" width="55" height="134"></use>
+        <use href="#pineTreeSlim" x="1155" y="170" width="35" height="108"></use>
+        <use href="#pineTree" x="1247" y="166" width="48" height="117"></use>
+        <use href="#pineTreeSlim" x="1323" y="174" width="33" height="102"></use>
+        <use href="#pineTree" x="1422" y="142" width="58" height="154"></use>
+        <use href="#pineTreeSlim" x="1492" y="168" width="36" height="112"></use>
+        <use href="#pineTree" x="1538" y="159" width="53" height="129"></use>
+      </g>
+      <path class="forest-floor" d="M0 251c151-14 280 7 411-3 139-11 244-4 371 5 120 9 242-15 381-4 134 10 274-5 437 2v49H0Z"></path>
+    </svg>
   </section>
 
   <!-- DIRT GROUND: markup and rendering live independently in ground.js. -->

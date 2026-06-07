@@ -1,0 +1,54 @@
+/* Distant mountains and forest silhouettes joining the sky to the dirt ground. */
+.night-horizon {
+  position: fixed;
+  inset: auto 0 26vh;
+  height: clamp(130px, 22vh, 250px);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.night-horizon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.night-horizon .mountain-far {
+  opacity: 0.78;
+}
+
+.night-horizon .mountain-near {
+  opacity: 0.94;
+}
+
+.night-horizon .forest-back {
+  opacity: 0.72;
+  filter: blur(0.45px);
+}
+
+.night-horizon .forest-front {
+  opacity: 0.94;
+  filter: blur(0.12px);
+}
+
+.night-horizon .forest-floor {
+  fill: #030404;
+}
+
+.night-horizon .horizon-fire-glow {
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 700px) {
+  .night-horizon {
+    inset: auto 0 27vh;
+    height: 18vh;
+    min-height: 112px;
+  }
+
+  .night-horizon svg {
+    width: 165%;
+    transform: translateX(-20%);
+  }
+}
