@@ -93,6 +93,37 @@
       z-index: -1;
     }
 
+    .visit-stats {
+      position: fixed;
+      top: 24px;
+      left: 28px;
+      z-index: 12;
+      display: grid;
+      gap: 5px;
+      color: rgba(225, 236, 255, 0.82);
+      font-family: "Georgia", serif;
+      font-size: 12px;
+      line-height: 1.35;
+      letter-spacing: 0.08em;
+      text-shadow:
+        0 0 8px rgba(205, 222, 255, 0.28),
+        0 1px 8px rgba(0, 0, 0, 0.72);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .visit-stats strong {
+      color: rgba(255, 249, 225, 0.94);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+    }
+
+    .visit-stats[data-state="local"],
+    .visit-stats[data-state="unavailable"] {
+      opacity: 0.55;
+    }
+
     .screen-controls {
       position: fixed;
       right: 24px;
@@ -123,13 +154,48 @@
       background: rgba(22, 28, 42, 0.64);
     }
 
+    .sound-toggle,
     .fullscreen-toggle {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
       border: 1px solid rgba(255, 224, 180, 0.24);
       background: rgba(10, 14, 24, 0.54);
-      font-size: 13px;
+    }
+
+    .sound-toggle svg,
+    .fullscreen-toggle svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sound-toggle .icon-sound-on,
+    .fullscreen-toggle .icon-collapse {
+      display: none;
+    }
+
+    .sound-toggle[aria-pressed="true"] .icon-sound-off {
+      display: none;
+    }
+
+    .sound-toggle[aria-pressed="true"] .icon-sound-on {
+      display: block;
+    }
+
+    .fullscreen-toggle[aria-pressed="true"] .icon-expand {
+      display: none;
+    }
+
+    .fullscreen-toggle[aria-pressed="true"] .icon-collapse {
+      display: block;
     }
 
     /* 박동하며 크기가 변하던 레거시 글로우/연기는 제거 — 불은 한자리에서 고정으로 탄다. */
@@ -468,19 +534,26 @@
         right: 6vw;
       }
 
+      .visit-stats {
+        top: 16px;
+        left: 16px;
+        font-size: 11px;
+      }
+
+      .visit-stats strong {
+        font-size: 12px;
+      }
+
       .screen-controls {
         right: 16px;
         bottom: 16px;
       }
 
-      .sound-toggle {
-        padding: 10px 14px;
-        font-size: 13px;
-      }
-
+      .sound-toggle,
       .fullscreen-toggle {
-        padding: 10px 13px;
-        font-size: 12px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
       }
 
       .caption {
@@ -509,11 +582,51 @@
     <div class="moon-shadow" id="moonShadow"></div>
     <div class="moon-glow"></div>
   </div>
+  <aside class="visit-stats" id="visitStats" data-state="loading" aria-live="polite">
+    <span>멍때리고 간 사람 : <strong id="visitorCount">...</strong></span>
+    <span>멍때린 시간 : <strong id="stayTime">...</strong></span>
+  </aside>
   <div class="screen-controls">
-    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">Sound On</button>
-    <button class="fullscreen-toggle" id="fullscreenToggle" type="button" aria-pressed="false">전체화면</button>
+    <button
+      class="sound-toggle"
+      id="soundToggle"
+      type="button"
+      aria-label="사운드 켜기"
+      aria-pressed="false"
+      title="사운드 켜기"
+    >
+      <svg class="icon-sound-off" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"></path>
+        <path d="m16 9 5 6M21 9l-5 6"></path>
+      </svg>
+      <svg class="icon-sound-on" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"></path>
+        <path d="M15 9.5a4 4 0 0 1 0 5M18 7a7.5 7.5 0 0 1 0 10"></path>
+      </svg>
+    </button>
+    <button
+      class="fullscreen-toggle"
+      id="fullscreenToggle"
+      type="button"
+      aria-label="전체화면"
+      aria-pressed="false"
+      title="전체화면"
+    >
+      <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"></path>
+      </svg>
+      <svg class="icon-collapse" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 8h5V3M21 8h-5V3M16 21v-5h5M8 21v-5H3"></path>
+      </svg>
+    </button>
   </div>
-  <audio id="fireAudio" src="./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3" preload="auto" loop playsinline></audio>
+  <audio
+    id="fireAudio"
+    src="./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3"
+    preload="auto"
+    loop
+    playsinline
+  ></audio>
   <main class="scene" aria-label="흙바닥 위에서 타오르는 캠프파이어">
     <div class="glow"></div>
     <div class="smoke s1"></div>
@@ -541,6 +654,8 @@
     </video>
     <div class="embers" id="embers"></div>
   </main>
+  <div class="character-3d-layer" id="character3dLayer" aria-hidden="true"></div>
+
   <script>
     const embers = document.getElementById("embers");
     const moon = document.getElementById("moon");
@@ -559,7 +674,9 @@
       const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
       const isFullscreen = fullscreenElement === document.documentElement;
       document.body.classList.toggle("is-fullscreen", isFullscreen);
-      fullscreenToggle.textContent = isFullscreen ? "전체화면 종료" : "전체화면";
+      const accessibleLabel = isFullscreen ? "전체화면 종료" : "전체화면";
+      fullscreenToggle.setAttribute("aria-label", accessibleLabel);
+      fullscreenToggle.setAttribute("title", accessibleLabel);
       fullscreenToggle.setAttribute("aria-pressed", String(isFullscreen));
     }
 
@@ -657,28 +774,47 @@
       };
     }
 
-    async function toggleAmbience() {
+    function syncSoundState() {
+      const accessibleLabel = ambienceEnabled ? "사운드 끄기" : "사운드 켜기";
+      soundToggle.setAttribute("aria-label", accessibleLabel);
+      soundToggle.setAttribute("title", accessibleLabel);
+      soundToggle.setAttribute("aria-pressed", String(ambienceEnabled));
+    }
+
+    function startAmbience() {
       if (!ambienceEnabled) {
-        fireAudio.volume = 0.28;
-        fireAudio.currentTime = 0;
-        await fireAudio.play().catch(() => {});
-        ambience = startCampfireAmbience();
-        if (ambience?.audioContext?.state === "suspended") {
-          await ambience.audioContext.resume();
-        }
-        ambienceEnabled = true;
-        soundToggle.textContent = "Sound Off";
-        soundToggle.setAttribute("aria-pressed", "true");
         return;
       }
 
-      ambienceEnabled = false;
-      soundToggle.textContent = "Sound On";
-      soundToggle.setAttribute("aria-pressed", "false");
+      fireAudio.volume = 0.28;
+      fireAudio.play().catch(() => {});
+
+      if (!ambience) {
+        ambience = startCampfireAmbience();
+      }
+      if (ambience?.audioContext?.state === "suspended") {
+        ambience.audioContext.resume().catch(() => {});
+      }
+    }
+
+    function stopAmbience() {
       fireAudio.pause();
       fireAudio.currentTime = 0;
       ambience?.stop();
       ambience = null;
+    }
+
+    function toggleAmbience() {
+      if (!ambienceEnabled) {
+        ambienceEnabled = true;
+        syncSoundState();
+        startAmbience();
+        return;
+      }
+
+      ambienceEnabled = false;
+      syncSoundState();
+      stopAmbience();
     }
 
     function getSeoulNow() {
@@ -757,6 +893,8 @@
 
     resolveFireAudioSource();
     updateMoonPhase();
+    syncSoundState();
+
     soundToggle.addEventListener("click", () => {
       toggleAmbience();
     });
@@ -780,5 +918,6 @@
     }
   </script>
   <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/visit-stats.js"></script>
 </body>
 </html>
