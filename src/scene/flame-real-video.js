@@ -71,6 +71,15 @@ export class RealVideoFlameRenderer {
     this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
 
+  mixColor(a, b, amount) {
+    const t = Math.max(0, Math.min(1, amount));
+    return [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t,
+    ];
+  }
+
   render() {
     if (!this.active) return;
     this.animationFrame = window.requestAnimationFrame(this.render);
@@ -94,6 +103,14 @@ export class RealVideoFlameRenderer {
 
     const frame = ctx.getImageData(0, 0, Math.max(1, this.canvas.width), Math.max(1, this.canvas.height));
     const data = frame.data;
+    const frameWidth = Math.max(1, this.canvas.width);
+    const frameHeight = Math.max(1, this.canvas.height);
+    const warm = [255, 118, 42];
+    const cyan = [44, 238, 218];
+    const blue = [66, 142, 255];
+    const pink = [255, 108, 190];
+    const white = [255, 252, 222];
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
@@ -103,9 +120,24 @@ export class RealVideoFlameRenderer {
       let alpha = (heat - 34) / 150;
       alpha = Math.max(0, Math.min(1, alpha));
       alpha = alpha * alpha * (3 - 2 * alpha);
-      data[i] = Math.min(255, r * 1.18 + 18);
-      data[i + 1] = Math.min(255, g * 1.08 + 8);
-      data[i + 2] = Math.max(0, b * 0.86);
+      const pixel = i / 4;
+      const x = (pixel % frameWidth) / frameWidth;
+      const y = Math.floor(pixel / frameWidth) / frameHeight;
+      const hot = Math.max(0, Math.min(1, (heat - 45) / 185));
+      const upper = Math.max(0, Math.min(1, (0.92 - y) / 0.58));
+      const wave = 0.5 + 0.5 * Math.sin(x * 13.0 + y * 18.0 + video.currentTime * 1.1);
+      const aurora = Math.max(0, Math.min(1, upper * (0.36 + wave * 0.64)));
+      const midAir = Math.max(0, Math.min(1, (0.88 - y) / 0.46)) * Math.max(0, Math.min(1, (y - 0.18) / 0.42));
+      const magentaBand = midAir * (0.5 + 0.5 * Math.sin(x * 20.0 - y * 11.0 + video.currentTime * 1.7));
+
+      let color = this.mixColor(warm, cyan, aurora * 1.28);
+      color = this.mixColor(color, blue, Math.max(0, aurora - 0.40) * 0.95);
+      color = this.mixColor(color, pink, Math.max(0, wave - 0.46) * upper * 0.82 + magentaBand * 0.42);
+      color = this.mixColor(color, white, hot * hot * 0.36);
+
+      data[i] = Math.min(255, color[0] * (0.72 + hot * 0.28));
+      data[i + 1] = Math.min(255, color[1] * (0.86 + hot * 0.24));
+      data[i + 2] = Math.min(255, color[2] * (0.98 + hot * 0.20));
       data[i + 3] = Math.round(alpha * 255);
     }
     ctx.putImageData(frame, 0, 0);
@@ -119,18 +151,20 @@ export class RealVideoFlameRenderer {
     const cy = H * 0.875;
 
     let grad = ctx.createRadialGradient(cx, cy, H * 0.02, cx, cy, H * 0.16);
-    grad.addColorStop(0.0, "rgba(255, 238, 168, 0.58)");
-    grad.addColorStop(0.34, "rgba(255, 132, 24, 0.34)");
-    grad.addColorStop(1.0, "rgba(255, 72, 12, 0)");
+    grad.addColorStop(0.0, "rgba(242, 255, 220, 0.54)");
+    grad.addColorStop(0.30, "rgba(48, 230, 210, 0.30)");
+    grad.addColorStop(0.62, "rgba(255, 112, 190, 0.16)");
+    grad.addColorStop(1.0, "rgba(255, 92, 28, 0)");
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.ellipse(cx, cy, W * 0.17, H * 0.045, 0, 0, Math.PI * 2);
     ctx.fill();
 
     grad = ctx.createLinearGradient(cx, H * 0.86, cx, H * 0.64);
-    grad.addColorStop(0, "rgba(255, 232, 128, 0.42)");
-    grad.addColorStop(0.52, "rgba(255, 108, 22, 0.18)");
-    grad.addColorStop(1, "rgba(255, 58, 12, 0)");
+    grad.addColorStop(0, "rgba(255, 230, 150, 0.36)");
+    grad.addColorStop(0.42, "rgba(42, 226, 220, 0.22)");
+    grad.addColorStop(0.72, "rgba(136, 118, 255, 0.13)");
+    grad.addColorStop(1, "rgba(255, 70, 150, 0)");
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(W * 0.42, H * 0.885);

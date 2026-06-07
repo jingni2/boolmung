@@ -115,6 +115,31 @@
       background: rgba(22, 28, 42, 0.64);
     }
 
+    .fullscreen-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 14px;
+      border: 1px solid rgba(255, 224, 180, 0.24);
+      border-radius: 999px;
+      background: rgba(10, 14, 24, 0.54);
+      color: rgba(255, 239, 222, 0.94);
+      font: inherit;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+      cursor: pointer;
+      z-index: 12;
+    }
+
+    .fullscreen-toggle:hover {
+      background: rgba(22, 28, 42, 0.68);
+    }
+
     /* 박동하며 크기가 변하던 레거시 글로우/연기는 제거 — 불은 한자리에서 고정으로 탄다. */
     .glow { display: none; }
     .smoke { display: none; }
@@ -458,6 +483,13 @@
         font-size: 13px;
       }
 
+      .fullscreen-toggle {
+        top: 16px;
+        right: 16px;
+        padding: 10px 13px;
+        font-size: 12px;
+      }
+
       .caption {
         bottom: -10%;
         letter-spacing: 0.2em;
@@ -485,6 +517,7 @@
     <div class="moon-glow"></div>
   </div>
   <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">Sound On</button>
+  <button class="fullscreen-toggle" id="fullscreenToggle" type="button" aria-pressed="false">전체화면</button>
   <audio id="fireAudio" src="./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3" preload="auto" loop playsinline></audio>
   <main class="scene" aria-label="흙바닥 위에서 타오르는 캠프파이어">
     <div class="glow"></div>
@@ -531,6 +564,7 @@
     const moon = document.getElementById("moon");
     const moonShadow = document.getElementById("moonShadow");
     const soundToggle = document.getElementById("soundToggle");
+    const fullscreenToggle = document.getElementById("fullscreenToggle");
     const fireAudio = document.getElementById("fireAudio");
     const compactViewport = window.matchMedia("(max-width: 900px)").matches;
     const synodicMonth = 29.530588853;
@@ -538,6 +572,38 @@
     const fireAudioSrc = new URL("./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3", window.location.href).href;
     let ambience = null;
     let ambienceEnabled = false;
+
+    function syncFullscreenState() {
+      const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      const isFullscreen = fullscreenElement === document.documentElement;
+      document.body.classList.toggle("is-fullscreen", isFullscreen);
+      fullscreenToggle.textContent = isFullscreen ? "전체화면 종료" : "전체화면";
+      fullscreenToggle.setAttribute("aria-pressed", String(isFullscreen));
+    }
+
+    async function enterFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) return;
+      const requestFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+      if (!requestFullscreen) return;
+      await requestFullscreen.call(document.documentElement).catch?.(() => {});
+      syncFullscreenState();
+    }
+
+    async function exitFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) return;
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (!exit) return;
+      await exit.call(document).catch?.(() => {});
+      syncFullscreenState();
+    }
+
+    function toggleFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        exitFullscreen();
+        return;
+      }
+      enterFullscreen();
+    }
 
     function startCampfireAmbience() {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -712,6 +778,12 @@
     soundToggle.addEventListener("click", () => {
       toggleAmbience();
     });
+    fullscreenToggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleFullscreen();
+    });
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener("webkitfullscreenchange", syncFullscreenState);
 
     window.setInterval(() => {
       spawnEmber();
