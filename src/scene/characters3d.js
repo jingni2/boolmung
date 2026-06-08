@@ -85,6 +85,10 @@ export class CharacterMotionGallery {
       maxFps: 24,
       walkSpeed: 44,
       sitDelay: 1.05,
+      expressionDelay: 16,
+      expressionDuration: 3,
+      expressionStagger: 0.68,
+      expressionEmojis: ["🤍", "🤍"],
       // 캐릭터가 걷는 화면 하단 밴드의 높이 비율. 캔버스를 이 밴드로만
       // 한정해 매 프레임 합성하는 픽셀 면적을 줄인다(전체화면 대비 약 절반).
       bandRatio: 0.55,
@@ -116,6 +120,10 @@ export class CharacterMotionGallery {
     this.characterScale = 1;
     this.sittingScale = 1;
     this.bandHeight = 1;
+    this.expressionLayer = document.createElement("div");
+    this.expressions = [];
+    this.sittingElapsed = 0;
+    this.hasPlayedSittingExpression = false;
     this.destroyed = false;
 
     this.handleResize = this.handleResize.bind(this);
@@ -125,6 +133,15 @@ export class CharacterMotionGallery {
 
   async start() {
     this.container.appendChild(this.renderer.domElement);
+    this.expressionLayer.className = "character-expression-layer";
+    this.expressionLayer.setAttribute("aria-hidden", "true");
+    Object.assign(this.expressionLayer.style, {
+      position: "absolute",
+      inset: "0",
+      pointerEvents: "none",
+      zIndex: "2",
+    });
+    this.container.appendChild(this.expressionLayer);
     this.addLights();
     this.handleResize();
     window.addEventListener("resize", this.handleResize, { passive: true });
@@ -337,6 +354,9 @@ export class CharacterMotionGallery {
   setWalkingRoute(route) {
     const distance = Math.abs(route.target.x - route.start.x);
     this.character.state = "walking";
+    this.sittingElapsed = 0;
+    this.hasPlayedSittingExpression = false;
+    this.clearExpressions();
     this.character.startPosition = { ...route.start };
     this.character.targetPosition = { ...route.target };
     this.character.screenPosition = { ...route.start };
@@ -436,7 +456,6 @@ export class CharacterMotionGallery {
     const eased = easeInOut(progress);
     const standOpacity = 1 - eased;
     const sitOpacity = eased;
-    const settleDrop = this.characterHeight * 0.13 * eased;
     const standScaleY = 1 - 0.24 * eased;
     const standScaleXZ = 1 + 0.05 * eased;
 
@@ -448,7 +467,7 @@ export class CharacterMotionGallery {
     );
     this.character.screenPosition = {
       x: this.character.targetPosition.x,
-      y: this.character.targetPosition.y + settleDrop,
+      y: this.character.targetPosition.y,
     };
     setModelOpacity(this.character.wrapper, Math.max(standOpacity, 0));
     this.paintCharacter();
@@ -488,6 +507,88 @@ export class CharacterMotionGallery {
     this.container.dataset.characterState = "sitting";
   }
 
+  updateExpressions(delta) {
+    if (this.character?.state === "sitting") {
+      this.sittingElapsed += delta;
+      if (
+        !this.hasPlayedSittingExpression &&
+        this.sittingElapsed >= this.options.expressionDelay
+      ) {
+        this.hasPlayedSittingExpression = true;
+        this.spawnSittingExpressions();
+      }
+    }
+
+    this.expressions = this.expressions.filter((expression) => {
+      expression.elapsed += delta;
+      const localElapsed = expression.elapsed - expression.delay;
+
+      if (localElapsed < 0) {
+        return true;
+      }
+
+      const progress = clamp(localElapsed / this.options.expressionDuration, 0, 1);
+      const pop = progress < 0.18 ? easeInOut(progress / 0.18) : 1;
+      const drift = this.characterHeight * 0.48 * easeInOut(progress);
+      const fade = 1 - easeInOut(Math.max(0, (progress - 0.42) / 0.58));
+      const wobble = Math.sin(progress * Math.PI * 1.8) * this.characterHeight * 0.035;
+
+      expression.element.style.opacity = String(fade);
+      expression.element.style.transform = [
+        "translate(-50%, -50%)",
+        `translate(${wobble}px, ${-drift}px)`,
+        `scale(${0.55 + 0.45 * pop})`,
+      ].join(" ");
+
+      if (progress >= 1) {
+        expression.element.remove();
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  spawnSittingExpressions() {
+    const sittingPosition =
+      this.sittingCharacter?.screenPosition || this.character.targetPosition;
+    const fontSize = clamp(this.characterHeight * 0.133, 11, 16);
+    const headX = sittingPosition.x;
+    const sittingHeight = this.characterHeight * 0.72;
+    const headY = sittingPosition.y - sittingHeight - fontSize * 0.65 - 4;
+
+    this.options.expressionEmojis.forEach((emoji, index) => {
+      const element = document.createElement("span");
+      element.className = "character-expression";
+      element.textContent = emoji;
+      Object.assign(element.style, {
+        position: "absolute",
+        display: "block",
+        left: `${headX}px`,
+        top: `${headY}px`,
+        fontSize: `${fontSize}px`,
+        lineHeight: "1",
+        opacity: "0",
+        pointerEvents: "none",
+        transform: "translate(-50%, -50%) scale(0.55)",
+        willChange: "opacity, transform",
+      });
+      this.expressionLayer.appendChild(element);
+
+      this.expressions.push({
+        element,
+        elapsed: 0,
+        delay: index * this.options.expressionStagger,
+      });
+    });
+  }
+
+  clearExpressions() {
+    this.expressions.forEach((expression) => expression.element.remove());
+    this.expressions = [];
+    this.expressionLayer.replaceChildren();
+  }
+
   animate(now) {
     if (this.destroyed) {
       return;
@@ -504,6 +605,7 @@ export class CharacterMotionGallery {
     this.character?.mixer.update(delta);
     if (this.character) {
       this.updateCharacter(delta);
+      this.updateExpressions(delta);
     }
     this.renderer.render(this.scene, this.camera);
   }
@@ -514,6 +616,7 @@ export class CharacterMotionGallery {
     window.removeEventListener("resize", this.handleResize);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     this.character?.mixer.stopAllAction();
+    this.clearExpressions();
     this.renderer.dispose();
     this.container.replaceChildren();
     document.body.classList.remove("has-3d-characters");

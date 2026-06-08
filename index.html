@@ -363,6 +363,22 @@
       display: block;
     }
 
+    .character-expression-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .character-expression {
+      position: absolute;
+      display: block;
+      line-height: 1;
+      will-change: opacity, transform;
+      filter: drop-shadow(0 4px 10px rgba(255, 244, 226, 0.28));
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    }
+
     .has-3d-characters .character-layer {
       opacity: 0;
       visibility: hidden;
