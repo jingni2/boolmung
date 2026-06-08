@@ -89,6 +89,7 @@ export class CharacterMotionGallery {
       expressionDuration: 3,
       expressionStagger: 0.68,
       expressionEmojis: ["🤍", "🤍"],
+      expressionImageUrl: "./src/assets/emojis/heart.png",
       // 캐릭터가 걷는 화면 하단 밴드의 높이 비율. 캔버스를 이 밴드로만
       // 한정해 매 프레임 합성하는 픽셀 면적을 줄인다(전체화면 대비 약 절반).
       bandRatio: 0.55,
@@ -558,16 +559,28 @@ export class CharacterMotionGallery {
     const headY = sittingPosition.y - sittingHeight - fontSize * 0.65 - 4;
 
     this.options.expressionEmojis.forEach((emoji, index) => {
-      const element = document.createElement("span");
+      const element = this.options.expressionImageUrl
+        ? document.createElement("img")
+        : document.createElement("span");
       element.className = "character-expression";
-      element.textContent = emoji;
+      if (this.options.expressionImageUrl) {
+        element.src = this.options.expressionImageUrl;
+        element.alt = "";
+        element.decoding = "async";
+        element.draggable = false;
+      } else {
+        element.textContent = emoji;
+      }
       Object.assign(element.style, {
         position: "absolute",
         display: "block",
         left: `${headX}px`,
         top: `${headY}px`,
+        width: `${fontSize}px`,
+        height: `${fontSize}px`,
         fontSize: `${fontSize}px`,
         lineHeight: "1",
+        objectFit: "contain",
         opacity: "0",
         pointerEvents: "none",
         transform: "translate(-50%, -50%) scale(0.55)",

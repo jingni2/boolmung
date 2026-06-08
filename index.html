@@ -64,6 +64,13 @@
       opacity: 0.96;
     }
 
+    .moon.site-phase-active {
+      background-image: var(--moon-phase-image);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
     .moon::before {
       content: "";
       position: absolute;
@@ -76,6 +83,26 @@
       mix-blend-mode: multiply;
     }
 
+    .moon::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95) 0 8%, rgba(255, 246, 220, 0.94) 32%, rgba(216, 224, 238, 0.92) 68%, rgba(185, 197, 219, 0.88) 100%);
+      opacity: 0;
+      pointer-events: none;
+      mix-blend-mode: color;
+    }
+
+    .moon.site-phase-active::before {
+      opacity: 0;
+    }
+
+    .moon.site-phase-active::after {
+      opacity: 1;
+    }
+
     .moon-shadow {
       position: absolute;
       inset: 0;
@@ -83,6 +110,10 @@
       background: #091326;
       transform: translateX(var(--moon-shadow-x, 0%)) scaleX(var(--moon-shadow-scale, 1));
       opacity: var(--moon-shadow-opacity, 1);
+    }
+
+    .moon.site-phase-active .moon-shadow {
+      opacity: 0;
     }
 
     .moon-glow {
@@ -333,6 +364,7 @@
       pointer-events: none;
       z-index: 5;
     }
+
 
     .character-layer {
       position: fixed;
@@ -813,11 +845,46 @@
     const fullscreenToggle = document.getElementById("fullscreenToggle");
     const fireAudio = document.getElementById("fireAudio");
     const compactViewport = window.matchMedia("(max-width: 900px)").matches;
+    const fireAudioSrc = new URL("./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3", window.location.href).href;
     const synodicMonth = 29.530588853;
     const knownNewMoonUtc = Date.UTC(2000, 0, 6, 18, 14, 0);
-    const fireAudioSrc = new URL("./sounds/ronkoster2023-fireplace-with-crackling-sounds-2-min-rk-178392.mp3", window.location.href).href;
+    const lunarPhaseByDay = {
+      1: { label: "삭", illumination: 0, imageDay: 15 },
+      2: { label: "초승달", illumination: 7, imageDay: 2 },
+      3: { label: "초승달", illumination: 14, imageDay: 3 },
+      4: { label: "초승달", illumination: 21, imageDay: 4 },
+      5: { label: "초승달", illumination: 29, imageDay: 5 },
+      6: { label: "초승달", illumination: 36, imageDay: 6 },
+      7: { label: "초승달", illumination: 43, imageDay: 7 },
+      8: { label: "상현달", illumination: 50, imageDay: 8 },
+      9: { label: "상현 후", illumination: 57, imageDay: 9 },
+      10: { label: "상현 후", illumination: 64, imageDay: 10 },
+      11: { label: "상현 후", illumination: 71, imageDay: 11 },
+      12: { label: "상현 후", illumination: 79, imageDay: 12 },
+      13: { label: "상현 후", illumination: 86, imageDay: 13 },
+      14: { label: "상현 후", illumination: 93, imageDay: 14 },
+      15: { label: "보름달", illumination: 100, imageDay: 15 },
+      16: { label: "하현 전", illumination: 93, imageDay: 16 },
+      17: { label: "하현 전", illumination: 87, imageDay: 17 },
+      18: { label: "하현 전", illumination: 80, imageDay: 18 },
+      19: { label: "하현 전", illumination: 73, imageDay: 19 },
+      20: { label: "하현 전", illumination: 67, imageDay: 20 },
+      21: { label: "하현 전", illumination: 60, imageDay: 21 },
+      22: { label: "하현 전", illumination: 53, imageDay: 22 },
+      23: { label: "하현달", illumination: 47, imageDay: 23 },
+      24: { label: "그믐달", illumination: 40, imageDay: 24 },
+      25: { label: "그믐달", illumination: 33, imageDay: 25 },
+      26: { label: "그믐달", illumination: 27, imageDay: 26 },
+      27: { label: "그믐달", illumination: 20, imageDay: 27 },
+      28: { label: "그믐달", illumination: 13, imageDay: 28 },
+      29: { label: "그믐달", illumination: 7, imageDay: 29 },
+      30: { label: "그믐달", illumination: 0, imageDay: 15 }
+    };
     let ambience = null;
     let ambienceEnabled = false;
+    let moonPhaseImageUrl = "";
+    let moonApiSyncAt = 0;
+    let moonApiSnapshot = null;
 
     function syncFullscreenState() {
       const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
@@ -982,30 +1049,149 @@
       return new Date(`${seoulText.replace(",", "")}+09:00`);
     }
 
-    function updateMoonPhase() {
-      const seoulNow = getSeoulNow();
-      const daysSinceKnownNewMoon = (seoulNow.getTime() - knownNewMoonUtc) / 86400000;
-      const phaseAge = ((daysSinceKnownNewMoon % synodicMonth) + synodicMonth) % synodicMonth;
-      const phaseRatio = phaseAge / synodicMonth;
-      const illumination = 0.5 * (1 - Math.cos(phaseRatio * Math.PI * 2));
-      const waxing = phaseRatio <= 0.5;
-      const shadowOffset = (1 - illumination) * 100;
+    function getSeoulLunarDay() {
+      try {
+        const lunarParts = new Intl.DateTimeFormat("en-u-ca-chinese", {
+          timeZone: "Asia/Seoul",
+          month: "numeric",
+          day: "numeric"
+        }).formatToParts(new Date());
+
+        const lunarDay = Number(
+          lunarParts.find((part) => part.type === "day")?.value
+        );
+
+        if (Number.isFinite(lunarDay) && lunarDay >= 1 && lunarDay <= 30) {
+          return lunarDay;
+        }
+      } catch (_) {
+        // Fall back to astronomical approximation below when the lunar calendar
+        // formatter is not available in the runtime.
+      }
+
+      return null;
+    }
+
+    async function syncMoonPhaseFromApi() {
+      const now = Date.now();
+      if (moonApiSnapshot && now - moonApiSyncAt < 5 * 60 * 1000) {
+        return moonApiSnapshot;
+      }
+
+      const response = await fetch("/api/moon", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Moon API returned ${response.status}`);
+      }
+
+      const payload = await response.json();
+      if (payload?.status !== "success" || payload?.verified !== true) {
+        throw new Error("Moon API payload was not verified");
+      }
+
+      moonApiSnapshot = payload;
+      moonApiSyncAt = now;
+      return payload;
+    }
+
+    function applyMoonVisuals({
+      illumination,
+      phaseLabel,
+      waxing,
+      imageUrl,
+    }) {
+      const safeIllumination = Math.max(0, Math.min(1, illumination));
+      const shadowOffset = safeIllumination * 100;
       const shadowX = waxing ? -shadowOffset : shadowOffset;
       const shadowScale = waxing ? 1 : -1;
 
       moonShadow.style.setProperty("--moon-shadow-x", `${shadowX}%`);
       moonShadow.style.setProperty("--moon-shadow-scale", `${shadowScale}`);
-      moonShadow.style.setProperty("--moon-shadow-opacity", illumination < 0.02 ? "0.98" : "1");
+      moonShadow.style.setProperty("--moon-shadow-opacity", safeIllumination < 0.02 ? "0.98" : "1");
 
-      const phaseLabel = illumination > 0.97
-        ? "보름달"
-        : illumination < 0.08
-          ? "초승에 가까운 달"
-          : waxing
-            ? "차오르는 달"
-            : "기우는 달";
+      if (imageUrl) {
+        if (moonPhaseImageUrl !== imageUrl) {
+          const imageLoader = new Image();
+          moonPhaseImageUrl = imageUrl;
 
-      moon.setAttribute("aria-label", `한국 기준 오늘의 달: ${phaseLabel}`);
+          imageLoader.onload = () => {
+            if (moonPhaseImageUrl !== imageUrl) return;
+            moon.style.setProperty("--moon-phase-image", `url("${imageUrl}")`);
+            moon.classList.add("site-phase-active");
+          };
+
+          imageLoader.onerror = () => {
+            if (moonPhaseImageUrl !== imageUrl) return;
+            moon.style.removeProperty("--moon-phase-image");
+            moon.classList.remove("site-phase-active");
+          };
+
+          imageLoader.src = imageUrl;
+        } else if (moon.style.getPropertyValue("--moon-phase-image")) {
+          moon.classList.add("site-phase-active");
+        }
+      } else {
+        moonPhaseImageUrl = "";
+        moon.style.removeProperty("--moon-phase-image");
+        moon.classList.remove("site-phase-active");
+      }
+
+      const illuminationPercent = Math.round(safeIllumination * 100);
+      moon.setAttribute("aria-label", `한국 기준 오늘의 달: ${phaseLabel}, 밝기 ${illuminationPercent}%`);
+      moon.setAttribute("title", `한국 기준 오늘의 달: ${phaseLabel}, 밝기 ${illuminationPercent}%`);
+    }
+
+    function updateMoonPhaseFallback() {
+      const lunarDay = getSeoulLunarDay();
+      const mappedPhase = lunarDay ? lunarPhaseByDay[lunarDay] : null;
+      let phaseLabel = mappedPhase?.label;
+      let illumination = (mappedPhase?.illumination ?? 0) / 100;
+      let waxing = lunarDay ? lunarDay <= 15 : true;
+
+      if (!mappedPhase) {
+        const seoulNow = getSeoulNow();
+        const daysSinceKnownNewMoon = (seoulNow.getTime() - knownNewMoonUtc) / 86400000;
+        const phaseAge = ((daysSinceKnownNewMoon % synodicMonth) + synodicMonth) % synodicMonth;
+        const phaseRatio = phaseAge / synodicMonth;
+
+        illumination = 0.5 * (1 - Math.cos(phaseRatio * Math.PI * 2));
+        waxing = phaseRatio <= 0.5;
+        phaseLabel = illumination > 0.97
+          ? "보름달"
+          : illumination < 0.08
+            ? waxing ? "초승달" : "그믐달"
+            : waxing
+              ? "차오르는 달"
+              : "기우는 달";
+      }
+
+      applyMoonVisuals({
+        illumination,
+        phaseLabel,
+        waxing,
+        imageUrl: mappedPhase?.imageDay
+          ? `https://d5.co.kr/img/luna/1/${String(mappedPhase.imageDay).padStart(2, "0")}.png`
+          : "",
+      });
+    }
+
+    async function updateMoonPhase() {
+      try {
+        const payload = await syncMoonPhaseFromApi();
+        const lunarDay = Number(payload?.date?.lunar?.day);
+        const mappedPhase = Number.isFinite(lunarDay) ? lunarPhaseByDay[lunarDay] : null;
+        const phaseLabel = payload?.moon?.phase || mappedPhase?.label || "오늘의 달";
+        const illumination = Number(payload?.moon?.illumination ?? mappedPhase?.illumination ?? 0) / 100;
+        const waxing = lunarDay ? lunarDay <= 15 : true;
+
+        applyMoonVisuals({
+          illumination,
+          phaseLabel,
+          waxing,
+          imageUrl: payload?.moon?.imageUrl || "",
+        });
+      } catch (_) {
+        updateMoonPhaseFallback();
+      }
     }
 
     function resolveFireAudioSource() {
@@ -1057,6 +1243,9 @@
     window.setInterval(() => {
       spawnEmber();
     }, compactViewport ? 720 : 600);
+    window.setInterval(() => {
+      updateMoonPhase();
+    }, 10 * 60 * 1000);
   </script>
   <script type="importmap">
     {
