@@ -4,14 +4,87 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
 const WALK_CLIP = "Walking";
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const easeInOut = (value) => {
+  const t = clamp(value, 0, 1);
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+};
+
+const cloneMaterial = (material) => {
+  if (Array.isArray(material)) {
+    return material.map((entry) => entry.clone());
+  }
+
+  return material?.clone();
+};
+
+const forEachMaterial = (material, callback) => {
+  if (Array.isArray(material)) {
+    material.forEach(callback);
+    return;
+  }
+
+  if (material) {
+    callback(material);
+  }
+};
+
+const tuneWaxMaterial = (material) => {
+  forEachMaterial(material, (entry) => {
+    if (entry.map) {
+      entry.map.colorSpace = THREE.SRGBColorSpace;
+      entry.map.needsUpdate = true;
+    }
+    if ("normalMap" in entry) {
+      entry.normalMap = null;
+    }
+    if ("metalnessMap" in entry) {
+      entry.metalnessMap = null;
+    }
+    if ("roughnessMap" in entry) {
+      entry.roughnessMap = null;
+    }
+    if ("emissiveMap" in entry) {
+      entry.emissiveMap = null;
+    }
+    entry.color?.set(0xffecd5);
+    entry.emissive?.set(0x6f421f);
+    if ("emissiveIntensity" in entry) {
+      entry.emissiveIntensity = 0.16;
+    }
+    if ("metalness" in entry) {
+      entry.metalness = 0;
+    }
+    if ("roughness" in entry) {
+      entry.roughness = Math.max(entry.roughness ?? 0, 0.72);
+    }
+    entry.needsUpdate = true;
+  });
+};
+
+const setModelOpacity = (model, opacity) => {
+  model.traverse((node) => {
+    if (!node.isMesh) {
+      return;
+    }
+
+    forEachMaterial(node.material, (material) => {
+      material.transparent = opacity < 0.999;
+      material.opacity = opacity;
+      material.depthWrite = opacity > 0.96;
+      material.needsUpdate = true;
+    });
+  });
+};
 
 export class CharacterMotionGallery {
   constructor(container, options = {}) {
     this.container = container;
     this.options = {
       modelUrl: "./src/assets/models/umboi-web.glb",
+      sittingModelUrl: "./src/assets/models/umboi-sitting.glb",
       maxFps: 24,
       walkSpeed: 44,
+      sitDelay: 1.05,
       // 캐릭터가 걷는 화면 하단 밴드의 높이 비율. 캔버스를 이 밴드로만
       // 한정해 매 프레임 합성하는 픽셀 면적을 줄인다(전체화면 대비 약 절반).
       bandRatio: 0.55,
@@ -34,10 +107,14 @@ export class CharacterMotionGallery {
 
     this.clock = new THREE.Clock();
     this.character = null;
+    this.sittingCharacter = null;
     this.animationFrame = null;
     this.lastRenderTime = 0;
     this.sourceHeight = 1;
+    this.sittingSourceHeight = 1;
     this.characterHeight = 96;
+    this.characterScale = 1;
+    this.sittingScale = 1;
     this.bandHeight = 1;
     this.destroyed = false;
 
@@ -53,12 +130,22 @@ export class CharacterMotionGallery {
     window.addEventListener("resize", this.handleResize, { passive: true });
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
 
-    const gltf = await new GLTFLoader().loadAsync(this.options.modelUrl);
+    const loader = new GLTFLoader();
+    const [gltf, sittingGltf] = await Promise.all([
+      loader.loadAsync(this.options.modelUrl),
+      loader.loadAsync(this.options.sittingModelUrl).catch((error) => {
+        console.warn("앉은 웜보이 GLB를 불러오지 못했습니다.", error);
+        return null;
+      }),
+    ]);
     if (this.destroyed) {
       return [];
     }
 
     this.buildCharacter(gltf);
+    if (sittingGltf) {
+      this.buildSittingCharacter(sittingGltf);
+    }
     this.handleResize();
     this.container.classList.add("is-ready");
     document.body.classList.add("has-3d-characters");
@@ -69,9 +156,9 @@ export class CharacterMotionGallery {
   }
 
   addLights() {
-    const hemisphere = new THREE.HemisphereLight(0xaec7ff, 0x4b1d0c, 0.8);
+    const hemisphere = new THREE.HemisphereLight(0xfff3dc, 0x4b1d0c, 1.05);
     const fireLight = new THREE.PointLight(0xff9a47, 1.8, 1300, 1.8);
-    const fillLight = new THREE.DirectionalLight(0xffead3, 0.6);
+    const fillLight = new THREE.DirectionalLight(0xffead3, 0.85);
 
     fireLight.position.set(0, -80, 420);
     fillLight.position.set(-300, 420, 500);
@@ -97,6 +184,8 @@ export class CharacterMotionGallery {
       if (!node.isMesh) {
         return;
       }
+      node.material = cloneMaterial(node.material);
+      tuneWaxMaterial(node.material);
       node.frustumCulled = false;
       node.castShadow = false;
       node.receiveShadow = false;
@@ -117,12 +206,47 @@ export class CharacterMotionGallery {
       mixer,
       walkAction,
       state: "walking",
+      settleElapsed: 0,
       screenPosition: { x: 0, y: 0 },
       startPosition: { x: 0, y: 0 },
       targetPosition: { x: 0, y: 0 },
       moveElapsed: 0,
       moveDuration: 1,
     };
+    this.container.dataset.characterState = "walking";
+  }
+
+  buildSittingCharacter(gltf) {
+    const template = gltf.scene;
+    const bounds = new THREE.Box3().setFromObject(template);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const model = cloneSkeleton(template);
+    const wrapper = new THREE.Group();
+
+    this.sittingSourceHeight = Math.max(0.001, bounds.max.y - bounds.min.y);
+    model.position.set(-center.x, -bounds.min.y, -center.z);
+    model.traverse((node) => {
+      if (!node.isMesh) {
+        return;
+      }
+      node.material = cloneMaterial(node.material);
+      tuneWaxMaterial(node.material);
+      node.frustumCulled = false;
+      node.castShadow = false;
+      node.receiveShadow = false;
+    });
+
+    wrapper.add(model);
+    wrapper.rotation.y = 0.5;
+    wrapper.visible = false;
+    this.scene.add(wrapper);
+
+    this.sittingCharacter = {
+      wrapper,
+      model,
+      screenPosition: { x: 0, y: 0 },
+    };
+    setModelOpacity(model, 0);
   }
 
   getRoute(width, height) {
@@ -174,9 +298,19 @@ export class CharacterMotionGallery {
 
     const route = this.getRoute(width, height);
     this.characterHeight = route.targetHeight;
-    this.character.wrapper.scale.setScalar(route.targetHeight / this.sourceHeight);
+    this.characterScale = route.targetHeight / this.sourceHeight;
+    this.character.wrapper.scale.setScalar(this.characterScale);
+    if (this.sittingCharacter) {
+      this.sittingScale = (route.targetHeight * 0.72) / this.sittingSourceHeight;
+      this.sittingCharacter.wrapper.scale.setScalar(this.sittingScale);
+    }
 
-    if (this.character.state === "stopped") {
+    if (this.character.state === "sitting") {
+      this.character.screenPosition = { ...route.target };
+      if (this.sittingCharacter) {
+        this.sittingCharacter.screenPosition = { ...route.target };
+      }
+    } else if (this.character.state === "settling") {
       this.character.screenPosition = { ...route.target };
     } else if (this.character.startPosition.x === 0) {
       this.setWalkingRoute(route);
@@ -197,6 +331,7 @@ export class CharacterMotionGallery {
     }
 
     this.paintCharacter(width, height);
+    this.paintSittingCharacter(width, height);
   }
 
   setWalkingRoute(route) {
@@ -208,6 +343,12 @@ export class CharacterMotionGallery {
     this.character.moveElapsed = 0;
     this.character.moveDuration = distance / this.options.walkSpeed;
     this.character.walkAction.paused = false;
+    this.character.wrapper.visible = true;
+    if (this.sittingCharacter) {
+      this.sittingCharacter.wrapper.visible = false;
+      setModelOpacity(this.sittingCharacter.model, 0);
+    }
+    this.container.dataset.characterState = "walking";
   }
 
   handleVisibilityChange() {
@@ -231,8 +372,32 @@ export class CharacterMotionGallery {
     );
   }
 
+  paintSittingCharacter(width = window.innerWidth, height = window.innerHeight) {
+    if (!this.sittingCharacter) {
+      return;
+    }
+
+    const bandHeight = this.bandHeight || height;
+    this.sittingCharacter.wrapper.position.set(
+      this.sittingCharacter.screenPosition.x - width / 2,
+      (height - bandHeight / 2) - this.sittingCharacter.screenPosition.y,
+      0
+    );
+  }
+
   updateCharacter(delta) {
-    if (this.character.state === "stopped") {
+    if (this.character.state === "sitting") {
+      return;
+    }
+
+    if (this.character.state === "settling") {
+      this.character.settleElapsed += delta;
+      this.updateSitTransition(
+        clamp(this.character.settleElapsed / this.options.sitDelay, 0, 1)
+      );
+      if (this.character.settleElapsed >= this.options.sitDelay) {
+        this.sitCharacter();
+      }
       return;
     }
 
@@ -252,11 +417,75 @@ export class CharacterMotionGallery {
     this.paintCharacter();
 
     if (progress >= 1) {
-      this.character.state = "stopped";
+      this.character.state = "settling";
+      this.character.settleElapsed = 0;
       this.character.screenPosition = { ...this.character.targetPosition };
       this.character.walkAction.paused = true;
+      if (this.sittingCharacter) {
+        this.sittingCharacter.screenPosition = { ...this.character.targetPosition };
+        this.sittingCharacter.wrapper.visible = true;
+      }
+      this.container.dataset.characterState = "settling";
       this.paintCharacter();
+      this.paintSittingCharacter();
+      this.updateSitTransition(0);
     }
+  }
+
+  updateSitTransition(progress) {
+    const eased = easeInOut(progress);
+    const standOpacity = 1 - eased;
+    const sitOpacity = eased;
+    const settleDrop = this.characterHeight * 0.13 * eased;
+    const standScaleY = 1 - 0.24 * eased;
+    const standScaleXZ = 1 + 0.05 * eased;
+
+    this.character.wrapper.visible = standOpacity > 0.02;
+    this.character.wrapper.scale.set(
+      this.characterScale * standScaleXZ,
+      this.characterScale * standScaleY,
+      this.characterScale * standScaleXZ
+    );
+    this.character.screenPosition = {
+      x: this.character.targetPosition.x,
+      y: this.character.targetPosition.y + settleDrop,
+    };
+    setModelOpacity(this.character.wrapper, Math.max(standOpacity, 0));
+    this.paintCharacter();
+
+    if (!this.sittingCharacter) {
+      return;
+    }
+
+    this.sittingCharacter.wrapper.visible = sitOpacity > 0.02;
+    this.sittingCharacter.wrapper.scale.setScalar(
+      this.sittingScale * (0.94 + 0.06 * eased)
+    );
+    this.sittingCharacter.screenPosition = {
+      x: this.character.targetPosition.x,
+      y: this.character.targetPosition.y,
+    };
+    setModelOpacity(this.sittingCharacter.model, Math.max(sitOpacity, 0));
+    this.paintSittingCharacter();
+  }
+
+  sitCharacter() {
+    this.character.state = "sitting";
+    this.character.wrapper.visible = false;
+    this.character.wrapper.scale.setScalar(this.characterScale);
+    setModelOpacity(this.character.wrapper, 1);
+
+    if (this.sittingCharacter) {
+      this.sittingCharacter.screenPosition = { ...this.character.targetPosition };
+      this.sittingCharacter.wrapper.visible = true;
+      this.sittingCharacter.wrapper.scale.setScalar(this.sittingScale);
+      setModelOpacity(this.sittingCharacter.model, 1);
+      this.paintSittingCharacter();
+    } else {
+      this.character.wrapper.visible = true;
+    }
+
+    this.container.dataset.characterState = "sitting";
   }
 
   animate(now) {
