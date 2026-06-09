@@ -28,7 +28,7 @@ const forEachMaterial = (material, callback) => {
   }
 };
 
-const tuneWaxMaterial = (material) => {
+const tuneWaxMaterial = (material, { sitting = false } = {}) => {
   forEachMaterial(material, (entry) => {
     if (entry.map) {
       entry.map.colorSpace = THREE.SRGBColorSpace;
@@ -46,10 +46,10 @@ const tuneWaxMaterial = (material) => {
     if ("emissiveMap" in entry) {
       entry.emissiveMap = null;
     }
-    entry.color?.set(0xffecd5);
-    entry.emissive?.set(0x6f421f);
+    entry.color?.set(sitting ? 0xfff3e2 : 0xffecd5);
+    entry.emissive?.set(sitting ? 0x87522b : 0x6f421f);
     if ("emissiveIntensity" in entry) {
-      entry.emissiveIntensity = 0.16;
+      entry.emissiveIntensity = sitting ? 0.24 : 0.16;
     }
     if ("metalness" in entry) {
       entry.metalness = 0;
@@ -85,8 +85,8 @@ export class CharacterMotionGallery {
       maxFps: 24,
       walkSpeed: 44,
       distantScale: 0.5,
-      departureDelay: 1.1,
-      sitDelay: 1.05,
+      brakeDuration: 0.65,
+      sitDelay: 0.5,
       expressionDelay: 16,
       expressionDuration: 3,
       expressionStagger: 0.68,
@@ -225,6 +225,7 @@ export class CharacterMotionGallery {
       wrapper,
       mixer,
       walkAction,
+      walkClip,
       state: "walking",
       settleElapsed: 0,
       screenPosition: { x: 0, y: 0 },
@@ -250,7 +251,7 @@ export class CharacterMotionGallery {
         return;
       }
       node.material = cloneMaterial(node.material);
-      tuneWaxMaterial(node.material);
+      tuneWaxMaterial(node.material, { sitting: true });
       node.frustumCulled = false;
       node.castShadow = false;
       node.receiveShadow = false;
@@ -339,6 +340,8 @@ export class CharacterMotionGallery {
       }
     } else if (this.character.state === "settling") {
       this.character.screenPosition = { ...route.target };
+    } else if (this.character.state === "braking") {
+      this.character.screenPosition = { ...route.target };
     } else if (this.character.startPosition.x === 0) {
       this.setWalkingRoute(route);
     } else {
@@ -384,8 +387,10 @@ export class CharacterMotionGallery {
     this.character.startPosition = { ...route.start };
     this.character.targetPosition = { ...route.target };
     this.character.screenPosition = { ...route.start };
-    this.character.moveElapsed = -this.options.departureDelay;
+    this.character.moveElapsed = 0;
     this.character.moveDuration = distance / this.options.walkSpeed;
+    this.character.walkAction.reset();
+    this.character.walkAction.timeScale = 1;
     this.character.walkAction.paused = false;
     this.character.wrapper.visible = true;
     this.character.wrapper.scale.setScalar(
@@ -448,6 +453,36 @@ export class CharacterMotionGallery {
       return;
     }
 
+    if (this.character.state === "braking") {
+      this.character.brakeElapsed += delta;
+      const phase =
+        (this.character.walkAction.time % this.character.walkClip.duration) /
+        this.character.walkClip.duration;
+      const contactDistance = Math.min(
+        phase,
+        1 - phase,
+        Math.abs(phase - 0.5)
+      );
+      const brakeProgress = clamp(
+        this.character.brakeElapsed / this.options.brakeDuration,
+        0,
+        1
+      );
+
+      this.character.walkAction.timeScale = THREE.MathUtils.lerp(
+        0.72,
+        0.42,
+        brakeProgress
+      );
+      this.character.screenPosition = { ...this.character.targetPosition };
+      this.paintCharacter();
+
+      if (contactDistance < 0.045 || brakeProgress >= 1) {
+        this.beginSitTransition();
+      }
+      return;
+    }
+
     this.character.moveElapsed += delta;
     const progress = clamp(
       this.character.moveElapsed / this.character.moveDuration,
@@ -475,28 +510,38 @@ export class CharacterMotionGallery {
     this.paintCharacter();
 
     if (progress >= 1) {
-      this.character.state = "settling";
-      this.character.settleElapsed = 0;
+      this.character.state = "braking";
+      this.character.brakeElapsed = 0;
       this.character.screenPosition = { ...this.character.targetPosition };
       this.character.wrapper.scale.setScalar(this.characterScale);
-      this.character.walkAction.paused = true;
-      if (this.sittingCharacter) {
-        this.sittingCharacter.screenPosition = { ...this.character.targetPosition };
-        this.sittingCharacter.wrapper.visible = true;
-      }
-      this.container.dataset.characterState = "settling";
+      this.character.walkAction.timeScale = 0.72;
+      this.container.dataset.characterState = "braking";
       this.paintCharacter();
-      this.paintSittingCharacter();
-      this.updateSitTransition(0);
     }
+  }
+
+  beginSitTransition() {
+    this.character.state = "settling";
+    this.character.settleElapsed = 0;
+    this.character.walkAction.paused = true;
+    this.character.walkAction.timeScale = 1;
+
+    if (this.sittingCharacter) {
+      this.sittingCharacter.screenPosition = { ...this.character.targetPosition };
+      this.sittingCharacter.wrapper.visible = true;
+    }
+
+    this.container.dataset.characterState = "settling";
+    this.paintSittingCharacter();
+    this.updateSitTransition(0);
   }
 
   updateSitTransition(progress) {
     const eased = easeInOut(progress);
     const standOpacity = 1 - eased;
     const sitOpacity = eased;
-    const standScaleY = 1 - 0.24 * eased;
-    const standScaleXZ = 1 + 0.05 * eased;
+    const standScaleY = 1 - 0.08 * eased;
+    const standScaleXZ = 1 + 0.015 * eased;
 
     this.character.wrapper.visible = standOpacity > 0.02;
     this.character.wrapper.scale.set(
@@ -517,7 +562,7 @@ export class CharacterMotionGallery {
 
     this.sittingCharacter.wrapper.visible = sitOpacity > 0.02;
     this.sittingCharacter.wrapper.scale.setScalar(
-      this.sittingScale * (0.94 + 0.06 * eased)
+      this.sittingScale * (0.97 + 0.03 * eased)
     );
     this.sittingCharacter.screenPosition = {
       x: this.character.targetPosition.x,
@@ -531,6 +576,7 @@ export class CharacterMotionGallery {
     this.character.state = "sitting";
     this.character.wrapper.visible = false;
     this.character.wrapper.scale.setScalar(this.characterScale);
+    this.character.walkAction.stop();
     setModelOpacity(this.character.wrapper, 1);
 
     if (this.sittingCharacter) {
