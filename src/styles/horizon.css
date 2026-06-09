@@ -2,7 +2,7 @@
 .night-horizon {
   position: fixed;
   inset: auto 0 26vh;
-  height: clamp(130px, 22vh, 250px);
+  height: clamp(165px, 28vh, 310px);
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
@@ -43,8 +43,8 @@
 @media (max-width: 700px) {
   .night-horizon {
     inset: auto 0 27vh;
-    height: 18vh;
-    min-height: 112px;
+    height: 23vh;
+    min-height: 142px;
   }
 
   .night-horizon svg {

@@ -84,6 +84,8 @@ export class CharacterMotionGallery {
       sittingModelUrl: "./src/assets/models/umboi-sitting.glb",
       maxFps: 24,
       walkSpeed: 44,
+      distantScale: 0.5,
+      departureDelay: 1.1,
       sitDelay: 1.05,
       expressionDelay: 16,
       expressionDuration: 3,
@@ -277,12 +279,19 @@ export class CharacterMotionGallery {
     const stopGap = compact ? targetHeight * 0.34 : targetHeight * 0.42;
     const targetX = width / 2 - fireHalfWidth - stopGap;
     const footY = compact ? height * 0.84 : height * 0.81;
+    const tentRect = document.querySelector(".camp-tent")?.getBoundingClientRect();
+    const tentEntranceX = tentRect
+      ? tentRect.left + tentRect.width * 0.58
+      : targetHeight * 0.45;
+    const tentEntranceY = tentRect
+      ? tentRect.bottom - 2
+      : height * 0.69;
 
     return {
       targetHeight,
       start: {
-        x: -targetHeight * 0.75,
-        y: footY,
+        x: Math.max(targetHeight * 0.18, tentEntranceX),
+        y: Math.min(footY - targetHeight * 0.42, tentEntranceY),
       },
       target: {
         x: Math.max(targetHeight * 0.65, targetX),
@@ -345,7 +354,18 @@ export class CharacterMotionGallery {
         route.target.x,
         progress
       );
-      this.character.screenPosition.y = route.target.y;
+      this.character.screenPosition.y = THREE.MathUtils.lerp(
+        route.start.y,
+        route.target.y,
+        progress
+      );
+      const scaleProgress = easeInOut(progress);
+      const walkingScale = THREE.MathUtils.lerp(
+        this.options.distantScale,
+        1,
+        scaleProgress
+      );
+      this.character.wrapper.scale.setScalar(this.characterScale * walkingScale);
     }
 
     this.paintCharacter(width, height);
@@ -353,7 +373,10 @@ export class CharacterMotionGallery {
   }
 
   setWalkingRoute(route) {
-    const distance = Math.abs(route.target.x - route.start.x);
+    const distance = Math.hypot(
+      route.target.x - route.start.x,
+      route.target.y - route.start.y
+    );
     this.character.state = "walking";
     this.sittingElapsed = 0;
     this.hasPlayedSittingExpression = false;
@@ -361,10 +384,13 @@ export class CharacterMotionGallery {
     this.character.startPosition = { ...route.start };
     this.character.targetPosition = { ...route.target };
     this.character.screenPosition = { ...route.start };
-    this.character.moveElapsed = 0;
+    this.character.moveElapsed = -this.options.departureDelay;
     this.character.moveDuration = distance / this.options.walkSpeed;
     this.character.walkAction.paused = false;
     this.character.wrapper.visible = true;
+    this.character.wrapper.scale.setScalar(
+      this.characterScale * this.options.distantScale
+    );
     if (this.sittingCharacter) {
       this.sittingCharacter.wrapper.visible = false;
       setModelOpacity(this.sittingCharacter.model, 0);
@@ -434,13 +460,25 @@ export class CharacterMotionGallery {
       this.character.targetPosition.x,
       progress
     );
-    this.character.screenPosition.y = this.character.targetPosition.y;
+    this.character.screenPosition.y = THREE.MathUtils.lerp(
+      this.character.startPosition.y,
+      this.character.targetPosition.y,
+      progress
+    );
+    const scaleProgress = easeInOut(progress);
+    const walkingScale = THREE.MathUtils.lerp(
+      this.options.distantScale,
+      1,
+      scaleProgress
+    );
+    this.character.wrapper.scale.setScalar(this.characterScale * walkingScale);
     this.paintCharacter();
 
     if (progress >= 1) {
       this.character.state = "settling";
       this.character.settleElapsed = 0;
       this.character.screenPosition = { ...this.character.targetPosition };
+      this.character.wrapper.scale.setScalar(this.characterScale);
       this.character.walkAction.paused = true;
       if (this.sittingCharacter) {
         this.sittingCharacter.screenPosition = { ...this.character.targetPosition };

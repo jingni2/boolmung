@@ -304,6 +304,163 @@
 
     /* 장작·잉걸불(화로)은 src/scene/hearth.js 의 캔버스가 렌더링한다. */
 
+    .camp-tent {
+      position: fixed;
+      left: clamp(-28px, -2vw, -14px);
+      bottom: calc(32vh - 8px);
+      width: clamp(90px, 11vw, 160px);
+      aspect-ratio: 1.18 / 1;
+      z-index: 1;
+      pointer-events: none;
+      filter:
+        drop-shadow(0 18px 28px rgba(0, 0, 0, 0.48))
+        drop-shadow(0 0 28px rgba(255, 127, 31, 0.08));
+      opacity: 0.92;
+    }
+
+    .tent-shadow {
+      position: absolute;
+      left: -6%;
+      right: -8%;
+      bottom: -5%;
+      height: 13%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(6, 3, 2, 0.74), rgba(6, 3, 2, 0) 72%);
+      filter: blur(6px);
+    }
+
+    .tent-glow {
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 24%;
+      bottom: 15%;
+      border-radius: 50%;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(255, 215, 100, 0.44), rgba(255, 139, 34, 0.19) 40%, rgba(202, 64, 18, 0.05) 68%, transparent 78%);
+      filter: blur(20px);
+      mix-blend-mode: screen;
+      animation: tent-lantern 5.8s ease-in-out infinite;
+    }
+
+    .tent-body {
+      position: absolute;
+      inset: 3% 2% 5%;
+      clip-path: polygon(50% 3%, 100% 96%, 0 96%);
+      background:
+        linear-gradient(100deg, rgba(5, 4, 4, 0.84) 0 12%, transparent 30%),
+        linear-gradient(260deg, rgba(4, 4, 5, 0.88) 0 13%, transparent 34%),
+        radial-gradient(ellipse at 49% 45%, rgba(255, 224, 112, 0.54) 0 14%, rgba(230, 122, 32, 0.45) 33%, rgba(104, 34, 15, 0.48) 61%, rgba(8, 5, 5, 0.94) 100%),
+        linear-gradient(180deg, rgba(242, 164, 58, 0.34), rgba(62, 19, 11, 0.94));
+      box-shadow:
+        inset 0 -26px 38px rgba(0, 0, 0, 0.66),
+        inset 28px -12px 34px rgba(10, 5, 4, 0.58),
+        inset -28px -14px 34px rgba(8, 4, 4, 0.66);
+    }
+
+    .tent-body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(50% 3%, 100% 96%, 0 96%);
+      background:
+        repeating-linear-gradient(86deg, rgba(255, 238, 189, 0.045) 0 1px, transparent 1px 8px),
+        linear-gradient(90deg, rgba(255, 228, 156, 0.06), transparent 35%, rgba(0, 0, 0, 0.22) 76%);
+      opacity: 0.78;
+    }
+
+    .tent-body::after {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 1%;
+      height: 16%;
+      background:
+        linear-gradient(90deg, rgba(2, 2, 2, 0.86), rgba(16, 7, 4, 0.58) 28%, rgba(14, 6, 4, 0.62) 72%, rgba(1, 1, 1, 0.9));
+      filter: blur(1px);
+    }
+
+    .tent-seam {
+      position: absolute;
+      bottom: 8%;
+      width: 1px;
+      height: 78%;
+      background: linear-gradient(180deg, rgba(31, 16, 11, 0.24), rgba(18, 8, 6, 0.8));
+      box-shadow: 0 0 3px rgba(255, 205, 114, 0.08);
+      transform-origin: 50% 100%;
+      opacity: 0.72;
+    }
+
+    .tent-seam.center {
+      left: 50%;
+      height: 88%;
+      transform: translateX(-50%);
+      opacity: 0.88;
+    }
+
+    .tent-seam.left {
+      left: 30%;
+      transform: rotate(-13deg);
+    }
+
+    .tent-seam.right {
+      right: 30%;
+      transform: rotate(13deg);
+    }
+
+    .tent-cap {
+      position: absolute;
+      left: 42.4%;
+      top: 0;
+      width: 15%;
+      height: 18%;
+      clip-path: polygon(50% 0, 94% 100%, 6% 100%);
+      background:
+        linear-gradient(140deg, rgba(19, 16, 17, 0.98), rgba(3, 3, 5, 0.98));
+      filter: brightness(0.78);
+    }
+
+    .tent-pipe {
+      position: absolute;
+      left: 53.5%;
+      top: -10%;
+      width: 2.3%;
+      height: 27%;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, rgba(11, 11, 13, 0.82), rgba(105, 92, 80, 0.46), rgba(14, 13, 13, 0.88));
+      transform: rotate(-2deg);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.42);
+      opacity: 0.72;
+    }
+
+    .tent-stake {
+      position: absolute;
+      bottom: 0;
+      width: 9%;
+      height: 18%;
+      border-radius: 50% 50% 8% 8%;
+      background: linear-gradient(180deg, rgba(22, 10, 6, 0.18), rgba(0, 0, 0, 0.72));
+      filter: blur(0.5px);
+    }
+
+    .tent-stake.left {
+      left: 5%;
+      transform: rotate(-10deg);
+    }
+
+    .tent-stake.right {
+      right: 5%;
+      transform: rotate(10deg);
+    }
+
+    @keyframes tent-lantern {
+      0%, 100% { opacity: 0.72; transform: scale(0.98); }
+      45% { opacity: 0.92; transform: scale(1.03); }
+      70% { opacity: 0.82; transform: scale(1.01); }
+    }
+
     .ground-light {
       position: absolute;
       left: 50%;
@@ -808,6 +965,19 @@
     loop
     playsinline
   ></audio>
+  <section class="camp-tent" aria-hidden="true">
+    <div class="tent-shadow"></div>
+    <div class="tent-glow"></div>
+    <div class="tent-pipe"></div>
+    <div class="tent-body">
+      <span class="tent-seam center"></span>
+      <span class="tent-seam left"></span>
+      <span class="tent-seam right"></span>
+    </div>
+    <div class="tent-cap"></div>
+    <span class="tent-stake left"></span>
+    <span class="tent-stake right"></span>
+  </section>
   <main class="scene" aria-label="흙바닥 위에서 타오르는 캠프파이어">
     <div class="glow"></div>
     <div class="smoke s1"></div>
@@ -1255,7 +1425,7 @@
       }
     }
   </script>
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/main.js?v=tent-route-1"></script>
   <script type="module" src="./src/visit-stats.js"></script>
 </body>
 </html>
