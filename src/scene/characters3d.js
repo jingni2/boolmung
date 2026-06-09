@@ -275,10 +275,13 @@ export class CharacterMotionGallery {
     const targetHeight = compact
       ? clamp(width * 0.16, 58, 76)
       : clamp(width * 0.072, 82, 112);
-    const sceneWidth = Math.min(width * (compact ? 0.92 : 0.72), compact ? 390 : 430);
+    const sceneRect = document.querySelector(".scene")?.getBoundingClientRect();
+    const fallbackSceneWidth = Math.min(width * (compact ? 0.92 : 0.72), compact ? 390 : 430);
+    const sceneWidth = sceneRect?.width || fallbackSceneWidth;
+    const fireCenterX = sceneRect ? sceneRect.left + sceneRect.width * 0.5 : width / 2;
     const fireHalfWidth = sceneWidth * 0.31;
     const stopGap = compact ? targetHeight * 0.34 : targetHeight * 0.42;
-    const targetX = width / 2 - fireHalfWidth - stopGap;
+    const targetX = fireCenterX - fireHalfWidth - stopGap;
     const footY = compact ? height * 0.84 : height * 0.81;
     const tentRect = document.querySelector(".camp-tent")?.getBoundingClientRect();
     const tentEntranceX = tentRect

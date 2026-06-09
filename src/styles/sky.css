@@ -2,7 +2,7 @@
 .night-sky {
   position: fixed;
   inset: 0 0 auto;
-  height: 76vh;
+  height: var(--view-sky-height, 76vh);
   overflow: hidden;
   background:
     radial-gradient(ellipse at 68% 22%, rgba(43, 65, 101, 0.12), transparent 30%),
@@ -10,6 +10,7 @@
     linear-gradient(180deg, #02050b 0%, #06101f 58%, #0b1320 100%);
   pointer-events: none;
   z-index: 0;
+  transition: height 1s cubic-bezier(0.2, 0.74, 0.24, 1);
 }
 
 .night-sky::after {
