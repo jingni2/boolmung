@@ -1,10 +1,17 @@
 const MAX_SESSION_SECONDS = 12 * 60 * 60;
 
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+};
+
 const json = (data, status = 200) => Response.json(data, {
   status,
   headers: {
     "cache-control": "no-store",
     "content-type": "application/json; charset=utf-8",
+    ...CORS_HEADERS,
   },
 });
 
@@ -26,6 +33,11 @@ export const onRequestGet = async ({ env }) => {
   }
   return json(await getStats(env.STATS_DB));
 };
+
+export const onRequestOptions = async () => new Response(null, {
+  status: 204,
+  headers: CORS_HEADERS,
+});
 
 export const onRequestPost = async ({ request, env }) => {
   if (!env.STATS_DB) {

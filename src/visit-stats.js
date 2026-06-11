@@ -2,26 +2,18 @@ const statsElement = document.getElementById("visitStats");
 const visitorCountElement = document.getElementById("visitorCount");
 const stayTimeElement = document.getElementById("stayTime");
 
-const hostname = window.location.hostname;
-const isBoolmungDeployment = hostname === "boolmung.pages.dev"
-  || hostname.endsWith(".boolmung.pages.dev")
-  || hostname === "warmboy.insang.dev"
-  || hostname.endsWith(".warmboy.insang.dev");
+const isFilePreview = window.location.protocol === "file:";
+const STATS_API_ORIGIN = isFilePreview ? "https://warmboy.insang.dev" : "";
 
 const formatStayTime = (seconds) => {
-  const totalMinutes = Math.floor(Math.max(0, seconds) / 60);
-  if (totalMinutes < 1) {
-    return "1분 미만";
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  if (safeSeconds < 60) {
+    return `${safeSeconds}초`;
   }
 
+  const totalMinutes = Math.floor(safeSeconds / 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  if (hours === 0) {
-    return `${minutes}분`;
-  }
-  if (minutes === 0) {
-    return `${hours}시간`;
-  }
   return `${hours}시간 ${minutes}분`;
 };
 
@@ -58,10 +50,20 @@ const showUnavailable = () => {
   statsElement.dataset.state = "unavailable";
 };
 
-if (!isBoolmungDeployment) {
-  visitorCountElement.textContent = "로컬 미집계";
-  stayTimeElement.textContent = "로컬 미집계";
-  statsElement.dataset.state = "local";
+const resolveStatsUrl = () => `${STATS_API_ORIGIN}/api/stats`;
+
+if (isFilePreview) {
+  fetch(resolveStatsUrl(), { cache: "no-store" })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Stats API returned ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(showStats)
+    .catch(() => {
+      showUnavailable();
+    });
 } else {
   const visitorId = getStoredId(window.localStorage, "boolmung-visitor-id");
   const sessionId = getStoredId(window.sessionStorage, "boolmung-session-id");
@@ -95,7 +97,7 @@ if (!isBoolmungDeployment) {
       requestInFlight = true;
 
       try {
-        const response = await fetch("/api/stats", {
+        const response = await fetch(resolveStatsUrl(), {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -119,7 +121,7 @@ if (!isBoolmungDeployment) {
     }
 
     try {
-      const response = await fetch("/api/stats", { cache: "no-store" });
+      const response = await fetch(resolveStatsUrl(), { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Stats API returned ${response.status}`);
       }
