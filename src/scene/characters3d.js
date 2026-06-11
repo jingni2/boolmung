@@ -112,6 +112,25 @@ export class CharacterMotionGallery {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.domElement.setAttribute("aria-hidden", "true");
 
+    this.groundShadow = document.createElement("div");
+    this.groundShadow.className = "character-ground-shadow";
+    Object.assign(this.groundShadow.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: "72px",
+      height: "14px",
+      borderRadius: "50%",
+      background:
+        "radial-gradient(ellipse at center, rgba(4, 2, 1, 0.62) 0%, rgba(5, 3, 2, 0.34) 48%, transparent 76%)",
+      filter: "blur(4px)",
+      transform: "translate(-50%, -50%)",
+      transformOrigin: "50% 50%",
+      pointerEvents: "none",
+      zIndex: "0",
+    });
+    this.renderer.domElement.style.zIndex = "1";
+
     this.clock = new THREE.Clock();
     this.character = null;
     this.sittingCharacter = null;
@@ -135,6 +154,7 @@ export class CharacterMotionGallery {
   }
 
   async start() {
+    this.container.appendChild(this.groundShadow);
     this.container.appendChild(this.renderer.domElement);
     this.expressionLayer.className = "character-expression-layer";
     this.expressionLayer.setAttribute("aria-hidden", "true");
@@ -425,6 +445,7 @@ export class CharacterMotionGallery {
       (height - bandHeight / 2) - this.character.screenPosition.y,
       0
     );
+    this.paintGroundShadow();
   }
 
   paintSittingCharacter(width = window.innerWidth, height = window.innerHeight) {
@@ -438,6 +459,26 @@ export class CharacterMotionGallery {
       (height - bandHeight / 2) - this.sittingCharacter.screenPosition.y,
       0
     );
+    this.paintGroundShadow();
+  }
+
+  paintGroundShadow() {
+    if (!this.character || !this.groundShadow) {
+      return;
+    }
+
+    const isSitting = this.character.state === "sitting";
+    const position = isSitting && this.sittingCharacter
+      ? this.sittingCharacter.screenPosition
+      : this.character.screenPosition;
+    const shadowWidth = this.characterHeight * (isSitting ? 0.62 : 0.46);
+    const shadowHeight = Math.max(8, this.characterHeight * (isSitting ? 0.1 : 0.075));
+
+    this.groundShadow.style.left = `${position.x}px`;
+    this.groundShadow.style.top = `${position.y + 2}px`;
+    this.groundShadow.style.width = `${shadowWidth}px`;
+    this.groundShadow.style.height = `${shadowHeight}px`;
+    this.groundShadow.style.opacity = this.character.state === "walking" ? "0.72" : "0.88";
   }
 
   updateCharacter(delta) {

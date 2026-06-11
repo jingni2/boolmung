@@ -1,5 +1,5 @@
 import { CampfireController } from "./scene/fire.js";
-import { CharacterMotionGallery } from "./scene/characters3d.js?v=sit-transition-3";
+import { CharacterMotionGallery } from "./scene/characters3d.js?v=ground-contact-2";
 import { NightSkyRenderer } from "./scene/sky.js";
 import { DirtGroundRenderer } from "./scene/ground.js";
 

@@ -4,7 +4,9 @@ const stayTimeElement = document.getElementById("stayTime");
 
 const hostname = window.location.hostname;
 const isBoolmungDeployment = hostname === "boolmung.pages.dev"
-  || hostname.endsWith(".boolmung.pages.dev");
+  || hostname.endsWith(".boolmung.pages.dev")
+  || hostname === "warmboy.insang.dev"
+  || hostname.endsWith(".warmboy.insang.dev");
 
 const formatStayTime = (seconds) => {
   const totalMinutes = Math.floor(Math.max(0, seconds) / 60);
